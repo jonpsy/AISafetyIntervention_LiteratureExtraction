@@ -1,0 +1,31 @@
+Development Paper Set (per Claude)
+
+Topical Area: AI Deception and Truthfulness
+
+This cluster focuses on deceptive capabilities in AI systems and interventions to promote truthfulness, including lie detection, honest training objectives, and truthfulness evaluations.
+
+https://arxiv.org/abs/2401.06373 - Sleeper Agents: Training Deceptive LLMs that Persist Through Safety Training
+https://arxiv.org/abs/2312.17080 - The Instruction Hierarchy: Training LLMs to Prioritize Privileged Instructions
+https://arxiv.org/abs/2310.01405 - Language Models Don't Always Say What They Think: Unfaithful Explanations in Chain-of-Thought Prompting
+https://arxiv.org/abs/2307.02477 - Cognitive Architectures for Language Agents
+https://arxiv.org/abs/2212.03827 - Discovering Language Model Behaviors with Model-Written Evaluations
+https://arxiv.org/abs/2309.00423 - The False Promise of Imitating Proprietary LLMs
+https://arxiv.org/abs/2304.13734 - Are Emergent Abilities of Large Language Models a Mirage?
+https://arxiv.org/abs/2212.09251 - Constitutional AI: Harmlessness from AI Feedback
+https://arxiv.org/abs/2310.13639 - Representation Engineering: A Top-Down Approach to AI Transparency
+https://arxiv.org/abs/2308.14729 - Towards Measuring the Representation of Subjective Global Opinions in Language Models
+https://arxiv.org/abs/2308.07317 - AI Deception: A Survey of Examples, Risks, and Potential Solutions
+https://arxiv.org/abs/2309.17453 - LLM Lies: Hallucinations are not Bugs, but Features as Adversarial Examples
+https://arxiv.org/abs/2310.06825 - Fine-Tuning or Retrieval? Comparing Knowledge Injection in LLMs
+https://arxiv.org/abs/2310.12397 - Walking Down the Memory Maze: Beyond Context Limit through Interactive Reading
+https://arxiv.org/abs/2406.11541 - Extracting Training Data from Document-Based VQA Models
+https://arxiv.org/abs/2311.17035 - The Alignment Problem from a Deep Learning Perspective
+https://arxiv.org/abs/2305.13048 - Language models can explain neurons in language models
+https://arxiv.org/abs/2212.10560 - Self-critiquing models for assisting human evaluators
+https://arxiv.org/abs/2311.09677 - Summon a Demon and Bind it: A Grounded Theory of LLM Red Teaming in the Wild
+https://arxiv.org/abs/2402.09371 - How Easy is It to Fool Your Multimodal LLMs? An Empirical Analysis on Deceptive Prompts
+https://arxiv.org/abs/2310.07574 - Lying and deception by omission in large language models
+https://arxiv.org/abs/2402.14811 - ShortGPT: Layers in Large Language Models are More Redundant Than You Expect
+https://arxiv.org/abs/2305.14251 - Do Large Language Models Know What They Don't Know?
+https://arxiv.org/abs/2310.06174 - Language Models Meet World Models: Embodied Experiences Enhance Language Model Reasoning
+https://arxiv.org/abs/2403.03493 - The Era of 1-bit LLMs: All Large Language Models are in 1.58 Bits  
