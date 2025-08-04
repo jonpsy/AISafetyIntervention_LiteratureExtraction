@@ -1,31 +1,24 @@
-Development Paper Set (per Claude)
+Development Paper Set (per ChatGPT, Claude was not successful)
 
 Topical Area: AI Deception and Truthfulness
 
-This cluster focuses on deceptive capabilities in AI systems and interventions to promote truthfulness, including lie detection, honest training objectives, and truthfulness evaluations.
-
-https://arxiv.org/abs/2401.06373 - Sleeper Agents: Training Deceptive LLMs that Persist Through Safety Training
-https://arxiv.org/abs/2312.17080 - The Instruction Hierarchy: Training LLMs to Prioritize Privileged Instructions
-https://arxiv.org/abs/2310.01405 - Language Models Don't Always Say What They Think: Unfaithful Explanations in Chain-of-Thought Prompting
-https://arxiv.org/abs/2307.02477 - Cognitive Architectures for Language Agents
-https://arxiv.org/abs/2212.03827 - Discovering Language Model Behaviors with Model-Written Evaluations
-https://arxiv.org/abs/2309.00423 - The False Promise of Imitating Proprietary LLMs
-https://arxiv.org/abs/2304.13734 - Are Emergent Abilities of Large Language Models a Mirage?
-https://arxiv.org/abs/2212.09251 - Constitutional AI: Harmlessness from AI Feedback
-https://arxiv.org/abs/2310.13639 - Representation Engineering: A Top-Down Approach to AI Transparency
-https://arxiv.org/abs/2308.14729 - Towards Measuring the Representation of Subjective Global Opinions in Language Models
-https://arxiv.org/abs/2308.07317 - AI Deception: A Survey of Examples, Risks, and Potential Solutions
-https://arxiv.org/abs/2309.17453 - LLM Lies: Hallucinations are not Bugs, but Features as Adversarial Examples
-https://arxiv.org/abs/2310.06825 - Fine-Tuning or Retrieval? Comparing Knowledge Injection in LLMs
-https://arxiv.org/abs/2310.12397 - Walking Down the Memory Maze: Beyond Context Limit through Interactive Reading
-https://arxiv.org/abs/2406.11541 - Extracting Training Data from Document-Based VQA Models
-https://arxiv.org/abs/2311.17035 - The Alignment Problem from a Deep Learning Perspective
-https://arxiv.org/abs/2305.13048 - Language models can explain neurons in language models
-https://arxiv.org/abs/2212.10560 - Self-critiquing models for assisting human evaluators
-https://arxiv.org/abs/2311.09677 - Summon a Demon and Bind it: A Grounded Theory of LLM Red Teaming in the Wild
-https://arxiv.org/abs/2402.09371 - How Easy is It to Fool Your Multimodal LLMs? An Empirical Analysis on Deceptive Prompts
-https://arxiv.org/abs/2310.07574 - Lying and deception by omission in large language models
-https://arxiv.org/abs/2402.14811 - ShortGPT: Layers in Large Language Models are More Redundant Than You Expect
-https://arxiv.org/abs/2305.14251 - Do Large Language Models Know What They Don't Know?
-https://arxiv.org/abs/2310.06174 - Language Models Meet World Models: Embodied Experiences Enhance Language Model Reasoning
-https://arxiv.org/abs/2403.03493 - The Era of 1-bit LLMs: All Large Language Models are in 1.58 Bits  
+https://arxiv.org/abs/2311.07590 - Large Language Models can Strategically Deceive their Users when Put Under Pressure
+https://arxiv.org/abs/2502.08301 - Compromising Honesty and Harmlessness in Language Models via Deception Attacks
+https://arxiv.org/abs/2307.16513 - Deception Abilities Emerged in Large Language Models
+https://arxiv.org/abs/2405.01576 - Uncovering Deceptive Tendencies in Language Models: A Simulated Company AI Assistant
+https://arxiv.org/abs/2504.13707 - OpenDeception: Benchmarking and Investigating AI Deceptive Behaviors via Open‑ended Interaction Simulation
+https://arxiv.org/abs/2403.09676 - Unmasking the Shadows of AI: Investigating Deceptive Capabilities in Large Language Models
+https://arxiv.org/abs/2311.14876 - Exploiting Large Language Models (LLMs) through Deception Techniques and Persuasion Principles
+https://arxiv.org/abs/2408.00024 - Deceptive AI systems that give explanations are more convincing than honest AI systems and can amplify belief in misinformation
+https://arxiv.org/abs/2406.13261 - BeHonest: Benchmarking Honesty in Large Language Models
+https://arxiv.org/abs/2501.16513 - Deception in LLMs: Self‑Preservation and Autonomous Goals in Large Language Models
+https://arxiv.org/abs/2405.12999 - An Assessment of Model‑on‑Model Deception
+https://arxiv.org/abs/2405.04325 - Deception in Reinforced Autonomous Agents
+https://arxiv.org/abs/2402.18048 - Characterizing Truthfulness in Large Language Model Generations with Local Intrinsic Dimension
+https://arxiv.org/abs/2310.12558 - Large Language Models Help Humans Verify Truthfulness -- Except When They Are Convincingly Wrong
+https://arxiv.org/abs/2409.18786 - A Survey on the Honesty of Large Language Models
+https://arxiv.org/abs/2401.12292 - GRATH: Gradual Self‑Truthifying for Large Language Models
+https://arxiv.org/abs/2311.07092 - To Tell The Truth: Language of Deception and Language Models
+https://arxiv.org/abs/2401.06373 - How Johnny Can Persuade LLMs to Jailbreak Them: Rethinking Persuasion to Challenge AI Safety by Humanizing LLMs
+https://arxiv.org/abs/2308.14752 - AI Deception: A Survey of Examples, Risks, and Potential Solutions
+https://arxiv.org/abs/2310.01405 - Representation Engineering: A Top-Down Approach to AI Transparency
