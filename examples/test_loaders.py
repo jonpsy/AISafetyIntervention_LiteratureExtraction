@@ -1,6 +1,9 @@
 import os
 import traceback
 import sys
+import logging
+
+logging.basicConfig(level=logging.ERROR)
 
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
 INPUT_PDF_DIR = os.path.join(REPO_ROOT, "inputdata_development_paper_set")
