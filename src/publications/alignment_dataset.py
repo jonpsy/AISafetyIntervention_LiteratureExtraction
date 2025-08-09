@@ -104,7 +104,6 @@ def load_publications_from_hf_ard(
         revision=revision,
         repo_type="dataset",
         local_dir=target_dir,
-        local_dir_use_symlinks=False,
         allow_patterns=allow_patterns,
     )
 
