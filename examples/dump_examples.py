@@ -27,7 +27,7 @@ def write_text(path: str, text: str) -> None:
         f.write(text)
 
 
-def dump_for_pdfs(pdf_dir: str, out_dir: str, limit: int = 2) -> List[Tuple[str, str, str]]:
+def dump_for_pdfs(pdf_dir: str, out_dir: str, limit: int = 5) -> List[Tuple[str, str, str]]:
     """
     For up to `limit` PDFs in `pdf_dir`, extract original text, split content/references,
     and write to files under `out_dir`.
@@ -71,7 +71,7 @@ def main() -> None:
     out_dir = os.path.join(REPO_ROOT, "examples_output")
     if not os.path.isdir(pdf_dir):
         raise SystemExit(f"PDF directory not found: {pdf_dir}")
-    written = dump_for_pdfs(pdf_dir, out_dir, limit=2)
+    written = dump_for_pdfs(pdf_dir, out_dir)
     print("Wrote example dumps:")
     for ori, con, ref in written:
         print(f"- {ori}")
