@@ -42,7 +42,9 @@ def split_references(text: str) -> Tuple[str, Optional[str]]:
         "Bibliography",
         "Works Cited",
         "Literature Cited",
-        "References and Notes"
+        "References and Notes",
+        "Reference list",
+        "Reference List"
     ]
     # Include both original and uppercase versions
     all_keywords = keywords + [k.upper() for k in keywords]
