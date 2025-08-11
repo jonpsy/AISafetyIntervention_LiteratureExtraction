@@ -37,8 +37,18 @@ def split_references(text: str) -> Tuple[str, Optional[str]]:
 
     s = text.replace("\r\n", "\n").replace("\r", "\n")
 
+    keywords = [
+        "References",
+        "Bibliography",
+        "Works Cited",
+        "Literature Cited",
+        "References and Notes"
+    ]
+    # Include both original and uppercase versions
+    all_keywords = keywords + [k.upper() for k in keywords]
+    keywords_pattern = "|".join(re.escape(k) for k in all_keywords)
     heading_re = re.compile(
-        r"^\s*(?:\d+\s+)?(References|Bibliography|Works\s+Cited|Literature\s+Cited|References\s+and\s+Notes)\s*$",
+        rf"^\s*(?:\d+\s+)?({keywords_pattern})\s*$",
         re.MULTILINE,
     )
     m = heading_re.search(s)
