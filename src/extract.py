@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 from dotenv import load_dotenv
 from openai import OpenAI
 from tqdm import tqdm
@@ -62,19 +62,21 @@ class Extractor:
         )
         return response
 
-    def process_dir(self, input_dir: Path) -> None:
+    def process_dir(self, input_dir: Path, first_n: Optional[int] = None) -> None:
         self.ensure_dir(OUTPUT_DIR)
 
         pdf_paths = sorted(input_dir.glob("*.pdf"))
+        if first_n:
+            pdf_paths = pdf_paths[:first_n]
         processed_papers = set([x.stem for x in OUTPUT_DIR.glob("*.json")])
         for pdf_path in tqdm(pdf_paths):
             if pdf_path.stem in processed_papers:
                 continue
-            
+
             file_id = self.upload_pdf_get_id(pdf_path)
             messages = self.build_user_input(file_id)
             response = self.call_openai(messages)
-            
+
             raw_path = OUTPUT_DIR / f"{pdf_path.stem}_raw_response.json"
             with raw_path.open("w", encoding="utf-8") as f:
                 f.write(response.model_dump_json())
@@ -87,4 +89,4 @@ class Extractor:
 
 if __name__ == "__main__":
     extractor = Extractor()
-    extractor.process_dir(INPUT_DIR)
+    extractor.process_dir(INPUT_DIR, 5)
