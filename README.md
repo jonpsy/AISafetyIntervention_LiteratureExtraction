@@ -2,6 +2,46 @@
 
 This repository contains all outcomes created in the 2025 Eleuther AI Summer of Open AI Research program for project #5, Scientific Literature Knowledge Extraction Tool.
 
+## Development Setup
+
+### Prerequisites
+
+- [UV](https://github.com/astral-sh/uv) (Python package installer and resolver)
+- [pre-commit](https://pre-commit.com/) (Git hooks manager)
+
+### Installation
+
+1. Create and activate a virtual environment using UV:
+
+   ```bash
+   uv venv
+   source .venv/bin/activate  # On Unix/macOS
+   # or
+   .\.venv\Scripts\activate  # On Windows
+   ```
+
+2. Install development dependencies:
+
+   ```bash
+   uv sync
+   ```
+
+3. Install pre-commit hooks:
+
+   ```bash
+   uv run pre-commit install
+   ```
+
+### Development Workflow
+
+Pre-commit hooks are configured to run on each commit to ensure code quality.
+
+To manually run all pre-commit checks:
+
+```bash
+uv run pre-commit run --all-files
+```
+
 ## Possible follow up projects (given a Knowledge Graph)
 
 - Automated Discovery of Emerging Research Fronts and "Invisible Colleges": identify clusters of papers that are conceptually related, even if they don't cite each other directly
