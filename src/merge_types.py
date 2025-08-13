@@ -21,23 +21,12 @@ class SourceMetadata(BaseModel):
 
 
 class LinkedEdgeSummary(BaseModel):
-    """Summarized view of an edge touching a node for LLM context with directionality."""
+    """Summarized view of an edge touching a node for LLM context."""
 
     edge_type: str
     rationale: str
     confidence: float = Field(..., ge=0.0, le=1.0)
-    source_node_key: str = Field(..., description="Key of the source node")
-    target_node_key: str = Field(..., description="Key of the target node")
     source: SourceMetadata
-
-    def get_context_for_node(self, node_key: str) -> str:
-        """Generate contextual description based on node's role in the edge."""
-        if node_key == self.source_node_key:
-            return f"[{self.edge_type} -> {self.target_node_key}] {self.rationale}"
-        elif node_key == self.target_node_key:
-            return f"[{self.source_node_key} -> {self.edge_type}] {self.rationale}"
-        else:
-            return f"[{self.edge_type}] {self.rationale}"  # fallback
 
 
 class NodeAggregate(BaseModel):
@@ -66,10 +55,8 @@ class EdgeAggregate(BaseModel):
     edge_key: str
     edge_type: str
     text: str = Field(..., description="Edge-level description if available")
-    node_pairs: List[tuple[str, str]] = Field(
-        default_factory=list,
-        description="List of (source_node_key, target_node_key) tuples preserving exact pairings",
-    )
+    source_nodes: List[str]
+    target_nodes: List[str]
     rationales: List[str] = Field(default_factory=list)
     confidence_samples: List[float] = Field(default_factory=list)
     sources: List[SourceMetadata] = Field(default_factory=list)
@@ -95,9 +82,8 @@ class NodeComparisonInput(BaseModel):
 
 class EdgeViewForComparison(BaseModel):
     text: str
-    node_pairs: List[tuple[str, str]] = Field(
-        description="List of (source_node_key, target_node_key) tuples for this edge type"
-    )
+    source_nodes: List[str]
+    target_nodes: List[str]
     context: List[str] = Field(default_factory=list)
     source_metadata: List[SourceMetadata]
 

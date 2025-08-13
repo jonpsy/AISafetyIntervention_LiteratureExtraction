@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+
 from .merge_types import (
     NodeComparisonInput,
     NodeViewForComparison,
@@ -9,10 +10,10 @@ from .merge_indexer import MergeIndex
 
 
 def _node_view(agg: NodeAggregate) -> NodeViewForComparison:
-    contexts: list[str] = []
+    contexts = []
     for e in agg.linked_edges:
         if e.rationale:
-            contexts.append(e.get_context_for_node(agg.node_key))
+            contexts.append(f"[{e.edge_type}] {e.rationale}")
 
     return NodeViewForComparison(
         text=agg.text,

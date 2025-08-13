@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
 """Walkthrough: Prepare data-only LLM inputs for node comparison (Step 1)
+
 This script demonstrates how to:
 1) Read structured extraction outputs from the `output/` directory
 2) Build an in-memory merge index of nodes with aliases, context, and sources
 3) Produce a data-only payload for comparing two nodes (no prompt text)
+
 Usage examples:
   uv run python examples/walkthrough_prepare_llm_input.py
   uv run python examples/walkthrough_prepare_llm_input.py --key-a <node_key_a> --key-b <node_key_b>
   uv run python examples/walkthrough_prepare_llm_input.py --save output/node_comparison_example.json
+
 The resulting payload contains exactly the fields required for LLM-assisted merge decisions,
 without including any task instructions.
 """

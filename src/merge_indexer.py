@@ -1,20 +1,19 @@
 from __future__ import annotations
 
-import logging
 from pathlib import Path
-from typing import Dict, Iterable
+from typing import Dict
 
 from pydantic import BaseModel, ValidationError
-from .prompts import OutputSchema
+
+try:
+    from src.prompts import OutputSchema
+except ImportError:
+    from prompts import OutputSchema
 
 from .merge_types import NodeAggregate, LinkedEdgeSummary, SourceMetadata
 
-logger = logging.getLogger(__name__)
-
 
 class MergeIndex(BaseModel):
-    """Aggregated, key-addressable view over nodes collected from outputs."""
-
     nodes: Dict[str, NodeAggregate]
 
 
@@ -22,135 +21,72 @@ def _node_key(canonical_name: str) -> str:
     return canonical_name.strip().lower()
 
 
-def _iter_valid_output_files(output_dir: Path) -> Iterable[Path]:
-    return sorted(p for p in output_dir.glob("*.json") if "raw_response" not in p.name)
-
-
-def _load_output(path: Path) -> OutputSchema | None:
-    try:
-        return OutputSchema.model_validate_json(path.read_text(encoding="utf-8"))
-    except (ValidationError, ValueError) as e:
-        logger.debug(f"Skipping invalid JSON file {path}: {e}")
-        return None
-    except Exception as e:
-        logger.debug(f"Unexpected error loading {path}: {e}")
-        return None
-
-
-def _summarize_edge(
-    edge, source_node_key: str, target_node_key: str, source: SourceMetadata
-) -> LinkedEdgeSummary:
-    return LinkedEdgeSummary(
-        edge_type=edge.type,
-        rationale=edge.rationale,
-        confidence=edge.confidence,
-        source_node_key=source_node_key,
-        target_node_key=target_node_key,
-        source=source,
-    )
-
-
-def _upsert_node_aggregate(
-    aggregates: Dict[str, NodeAggregate], node, source: SourceMetadata
-) -> NodeAggregate:
-    try:
-        key = _node_key(node.canonical_name or node.name)
-        if key not in aggregates:
-            aggregates[key] = _create_node_aggregate(node=node, key=key, source=source)
-            return aggregates[key]
-
-        agg = aggregates[key]
-        if (
-            node.canonical_name
-            and node.canonical_name.lower() == agg.canonical_text.lower()
-        ):
-            agg.text = node.name
-
-        alias_set = set(agg.aliases)
-        alias_set.update(node.aliases or [])
-        agg.aliases = list(alias_set)
-
-        note_text = getattr(node, "notes", None)
-        if note_text and note_text not in agg.notes:
-            agg.notes.append(note_text)
-        if node.confidence is not None:
-            agg.confidence_samples.append(node.confidence)
-        agg.sources.append(source)
-        return agg
-    except Exception as e:
-        logger.debug(f"Error upserting node {getattr(node, 'name', 'unknown')}: {e}")
-        # Return a minimal aggregate to continue processing
-        key = _node_key(getattr(node, "name", "unknown"))
-        if key not in aggregates:
-            aggregates[key] = NodeAggregate(
-                node_key=key,
-                text=getattr(node, "name", "unknown"),
-                canonical_text=getattr(node, "name", "unknown"),
-                aliases=[],
-                notes=[],
-                confidence_samples=[],
-                linked_edges=[],
-                sources=[source],
-            )
-        return aggregates[key]
-
-
-def _create_node_aggregate(node, key: str, source: SourceMetadata) -> NodeAggregate:
-    return NodeAggregate(
-        node_key=key,
-        text=node.name,
-        canonical_text=node.canonical_name or node.name,
-        aliases=list(node.aliases or []),
-        notes=[node.notes] if getattr(node, "notes", None) else [],
-        confidence_samples=[node.confidence],
-        linked_edges=[],
-        sources=[source],
-    )
-
-
 def build_merge_index(output_dir: Path) -> MergeIndex:
-    """Aggregate nodes from validated outputs into a compact index.
+    """Read parsed output JSON files and aggregate nodes.
 
-    Current schema has edges with only target_node (source is implicit paper).
-    LinkedEdgeSummary preserves this relationship and is ready for future
-    node-to-node edges when the extraction schema evolves.
+    output_dir should contain structured OutputSchema JSON files (not the raw_response files).
+    Non-matching JSON files will be safely skipped.
     """
     aggregates: Dict[str, NodeAggregate] = {}
 
-    for json_path in _iter_valid_output_files(output_dir):
-        data = _load_output(json_path)
-        if data is None:
+    json_paths = sorted(
+        [p for p in output_dir.glob("*.json") if "raw_response" not in p.name]
+    )
+
+    for json_path in json_paths:
+        try:
+            data = OutputSchema.model_validate_json(
+                json_path.read_text(encoding="utf-8")
+            )
+        except (ValidationError, ValueError):
+            # Skip files that are not OutputSchema (e.g., example payloads saved in output/)
             continue
 
-        source_metadata = SourceMetadata(paper_id=json_path.stem)
+        paper_id = json_path.stem
+        source = SourceMetadata(paper_id=paper_id)
 
-        # Process each edge - current schema has paper -> target_node relationships
         for edge in data.edges:
-            try:
-                target_node = edge.target_node
-                target_key = _node_key(target_node.canonical_name or target_node.name)
+            node = edge.target_node
+            key = _node_key(node.canonical_name or node.name)
 
-                # Current schema: paper is implicit source, target_node is explicit
-                # Future schema could have explicit source_node -> target_node
-                source_key = f"paper:{source_metadata.paper_id}"
-
-                # Ensure target node aggregate exists
-                target_agg = _upsert_node_aggregate(
-                    aggregates, target_node, source_metadata
+            if key not in aggregates:
+                aggregates[key] = NodeAggregate(
+                    node_key=key,
+                    text=node.name,
+                    canonical_text=node.canonical_name or node.name,
+                    aliases=list(node.aliases or []),
+                    notes=[node.notes] if getattr(node, "notes", None) else [],
+                    confidence_samples=[node.confidence],
+                    linked_edges=[],
+                    sources=[source],
                 )
+            else:
+                agg = aggregates[key]
+                # Update primary text to the most recent surface form if canonical matches; keep first otherwise
+                if (
+                    node.canonical_name
+                    and node.canonical_name.lower() == agg.canonical_text.lower()
+                ):
+                    agg.text = node.name
+                # Merge aliases and notes
+                for alias in node.aliases or []:
+                    if alias not in agg.aliases:
+                        agg.aliases.append(alias)
+                note_text = getattr(node, "notes", None)
+                if note_text and note_text not in agg.notes:
+                    agg.notes.append(note_text)
+                if node.confidence is not None:
+                    agg.confidence_samples.append(node.confidence)
+                agg.sources.append(source)
 
-                # Create directional edge preserving the paper -> node relationship
-                edge_summary = _summarize_edge(
-                    edge=edge,
-                    source_node_key=source_key,
-                    target_node_key=target_key,
-                    source=source_metadata,
+            # Record the connecting edge as context
+            aggregates[key].linked_edges.append(
+                LinkedEdgeSummary(
+                    edge_type=edge.type,
+                    rationale=edge.rationale,
+                    confidence=edge.confidence,
+                    source=source,
                 )
-
-                # Add to target node's context
-                target_agg.linked_edges.append(edge_summary)
-            except Exception as e:
-                logger.debug(f"Error processing edge in {json_path}: {e}")
-                continue
+            )
 
     return MergeIndex(nodes=aggregates)
