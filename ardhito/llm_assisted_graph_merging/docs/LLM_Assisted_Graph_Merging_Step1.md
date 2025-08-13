@@ -16,7 +16,7 @@ It focuses solely on preparing the data; there are no prompts, LLM calls, or mer
 
 
 ## Files Overview
-- `ardhito/llm_assisted_graph_merging/src/merge_types.py`
+- `<...>/src/merge_types.py`
   - `SourceMetadata`: identifies where a node/edge came from (currently `paper_id` from the output filename; placeholders for `title`, `section`, `paragraph_id`).
   - `LinkedEdgeSummary`: short record of an immediate connection (edge type, rationale, confidence, and source).
   - `NodeAggregate`: collected per-node data from all occurrences across outputs.
@@ -24,11 +24,11 @@ It focuses solely on preparing the data; there are no prompts, LLM calls, or mer
   - `NodeComparisonInput`: a pair of `NodeViewForComparison` (data-only) for A vs B.
   - Edge types (`EdgeViewForComparison`, `EdgeComparisonInput`) are defined for a later step.
 
-- `ardhito/llm_assisted_graph_merging/src/merge_indexer.py`
+- `<...>/llm_assisted_graph_merging/src/merge_indexer.py`
   - `build_merge_index(output_dir)`: reads parsed `OutputSchema` JSON files from `output/`, aggregates nodes by canonical name (lowercased), merges aliases and notes, and collects linked edge rationales as context.
   - Produces `MergeIndex` with `nodes: Dict[node_key, NodeAggregate]`.
 
-- `ardhito/llm_assisted_graph_merging/src/merge_input_builder.py`
+- `<...>/llm_assisted_graph_merging/src/merge_input_builder.py`
   - `build_node_comparison_input(index, key_a, key_b)`: converts two aggregates to a data-only `NodeComparisonInput`.
   - The node view includes:
     - `text`, `aliases`
@@ -36,7 +36,7 @@ It focuses solely on preparing the data; there are no prompts, LLM calls, or mer
     - `source_metadata`
     - `linked_edges`
 
-- `ardhito/llm_assisted_graph_merging/examples/walkthrough_prepare_llm_input.py`
+- `<...>/llm_assisted_graph_merging/examples/walkthrough_prepare_llm_input.py`
   - Runnable script demonstrating the end-to-end Step 1 flow.
 
 
@@ -53,10 +53,10 @@ There is deliberately no prompt or instruction text in Step 1. This is data-only
 ## Walkthrough
 - List available node keys and build a comparison payload:
 ```bash
-uv run python examples/walkthrough_prepare_llm_input.py --list --limit 10
-uv run python examples/walkthrough_prepare_llm_input.py
-uv run python examples/walkthrough_prepare_llm_input.py --key-a <node_key_a> --key-b <node_key_b>
-uv run python examples/walkthrough_prepare_llm_input.py --save output/node_comparison_example.json
+uv run python ardhito/llm_assisted_graph_merging/examples/walkthrough_prepare_llm_input.py --list --limit 10
+uv run python ardhito/llm_assisted_graph_merging/examples/walkthrough_prepare_llm_input.py
+uv run python ardhito/llm_assisted_graph_merging/examples/walkthrough_prepare_llm_input.py --key-a <node_key_a> --key-b <node_key_b>
+uv run python ardhito/llm_assisted_graph_merging/examples/walkthrough_prepare_llm_input.py --save output/node_comparison_example.json
 ```
 
 The printed (or saved) JSON is the exact payload you can provide to an LLM in Step 2.
