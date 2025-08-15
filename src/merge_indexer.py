@@ -30,11 +30,15 @@ def _load_output(path: Path) -> OutputSchema | None:
         return None
 
 
-def _summarize_edge(edge, source: SourceMetadata) -> LinkedEdgeSummary:
+def _summarize_edge(
+    edge, source_node_key: str, target_node_key: str, source: SourceMetadata
+) -> LinkedEdgeSummary:
     return LinkedEdgeSummary(
         edge_type=edge.type,
         rationale=edge.rationale,
         confidence=edge.confidence,
+        source_node_key=source_node_key,
+        target_node_key=target_node_key,
         source=source,
     )
 
@@ -79,7 +83,12 @@ def _create_node_aggregate(node, key: str, source: SourceMetadata) -> NodeAggreg
 
 
 def build_merge_index(output_dir: Path) -> MergeIndex:
-    """Aggregate nodes from validated outputs into a compact index."""
+    """Aggregate nodes from validated outputs into a compact index.
+
+    Current schema has edges with only target_node (source is implicit paper).
+    LinkedEdgeSummary preserves this relationship and is ready for future
+    node-to-node edges when the extraction schema evolves.
+    """
     aggregates: Dict[str, NodeAggregate] = {}
 
     for json_path in _iter_valid_output_files(output_dir):
@@ -87,9 +96,31 @@ def build_merge_index(output_dir: Path) -> MergeIndex:
         if data is None:
             continue
 
-        source = SourceMetadata(paper_id=json_path.stem)
+        source_metadata = SourceMetadata(paper_id=json_path.stem)
+
+        # Process each edge - current schema has paper -> target_node relationships
         for edge in data.edges:
-            agg = _upsert_node_aggregate(aggregates, edge.target_node, source)
-            agg.linked_edges.append(_summarize_edge(edge, source))
+            target_node = edge.target_node
+            target_key = _node_key(target_node.canonical_name or target_node.name)
+
+            # Current schema: paper is implicit source, target_node is explicit
+            # Future schema could have explicit source_node -> target_node
+            source_key = f"paper:{source_metadata.paper_id}"
+
+            # Ensure target node aggregate exists
+            target_agg = _upsert_node_aggregate(
+                aggregates, target_node, source_metadata
+            )
+
+            # Create directional edge preserving the paper -> node relationship
+            edge_summary = _summarize_edge(
+                edge=edge,
+                source_node_key=source_key,
+                target_node_key=target_key,
+                source=source_metadata,
+            )
+
+            # Add to target node's context
+            target_agg.linked_edges.append(edge_summary)
 
     return MergeIndex(nodes=aggregates)

@@ -21,12 +21,23 @@ class SourceMetadata(BaseModel):
 
 
 class LinkedEdgeSummary(BaseModel):
-    """Summarized view of an edge touching a node for LLM context."""
+    """Summarized view of an edge touching a node for LLM context with directionality."""
 
     edge_type: str
     rationale: str
     confidence: float = Field(..., ge=0.0, le=1.0)
+    source_node_key: str = Field(..., description="Key of the source node")
+    target_node_key: str = Field(..., description="Key of the target node")
     source: SourceMetadata
+
+    def get_context_for_node(self, node_key: str) -> str:
+        """Generate contextual description based on node's role in the edge."""
+        if node_key == self.source_node_key:
+            return f"[{self.edge_type} -> {self.target_node_key}] {self.rationale}"
+        elif node_key == self.target_node_key:
+            return f"[{self.source_node_key} -> {self.edge_type}] {self.rationale}"
+        else:
+            return f"[{self.edge_type}] {self.rationale}"  # fallback
 
 
 class NodeAggregate(BaseModel):

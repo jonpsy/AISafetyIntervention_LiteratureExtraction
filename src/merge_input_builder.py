@@ -12,7 +12,7 @@ def _node_view(agg: NodeAggregate) -> NodeViewForComparison:
     contexts: list[str] = []
     for e in agg.linked_edges:
         if e.rationale:
-            contexts.append(f"[{e.edge_type}] {e.rationale}")
+            contexts.append(e.get_context_for_node(agg.node_key))
 
     return NodeViewForComparison(
         text=agg.text,
