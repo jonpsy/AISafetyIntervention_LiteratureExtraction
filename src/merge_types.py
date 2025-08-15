@@ -66,8 +66,10 @@ class EdgeAggregate(BaseModel):
     edge_key: str
     edge_type: str
     text: str = Field(..., description="Edge-level description if available")
-    source_nodes: List[str]
-    target_nodes: List[str]
+    node_pairs: List[tuple[str, str]] = Field(
+        default_factory=list,
+        description="List of (source_node_key, target_node_key) tuples preserving exact pairings",
+    )
     rationales: List[str] = Field(default_factory=list)
     confidence_samples: List[float] = Field(default_factory=list)
     sources: List[SourceMetadata] = Field(default_factory=list)
@@ -93,8 +95,9 @@ class NodeComparisonInput(BaseModel):
 
 class EdgeViewForComparison(BaseModel):
     text: str
-    source_nodes: List[str]
-    target_nodes: List[str]
+    node_pairs: List[tuple[str, str]] = Field(
+        description="List of (source_node_key, target_node_key) tuples for this edge type"
+    )
     context: List[str] = Field(default_factory=list)
     source_metadata: List[SourceMetadata]
 
