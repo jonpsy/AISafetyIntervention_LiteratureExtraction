@@ -10,8 +10,7 @@ It focuses solely on preparing the data; there are no prompts, LLM calls, or mer
 - Data included per comparison:
   - Node text (surface form)
   - Aliases / alternate names
-  - Context / reasoning (why the nod# Ensure project root is on sys.path so `src` is importable when running from repo root
-e exists): node notes + rationales from linked edges
+  - Context / reasoning (why the node exists): node notes + rationales from linked edges
   - Source metadata (paper_id, with optional fields reserved for title/section/paragraph)
   - Linked edges (immediate connections with type, rationale, confidence, and source)
 
