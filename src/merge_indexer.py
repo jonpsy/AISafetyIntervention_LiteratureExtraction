@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from typing import Dict, Iterable
 
@@ -7,6 +8,8 @@ from pydantic import BaseModel, ValidationError
 from .prompts import OutputSchema
 
 from .merge_types import NodeAggregate, LinkedEdgeSummary, SourceMetadata
+
+logger = logging.getLogger(__name__)
 
 
 class MergeIndex(BaseModel):
@@ -26,7 +29,11 @@ def _iter_valid_output_files(output_dir: Path) -> Iterable[Path]:
 def _load_output(path: Path) -> OutputSchema | None:
     try:
         return OutputSchema.model_validate_json(path.read_text(encoding="utf-8"))
-    except (ValidationError, ValueError):
+    except (ValidationError, ValueError) as e:
+        logger.debug(f"Skipping invalid JSON file {path}: {e}")
+        return None
+    except Exception as e:
+        logger.debug(f"Unexpected error loading {path}: {e}")
         return None
 
 
@@ -46,30 +53,46 @@ def _summarize_edge(
 def _upsert_node_aggregate(
     aggregates: Dict[str, NodeAggregate], node, source: SourceMetadata
 ) -> NodeAggregate:
-    key = _node_key(node.canonical_name or node.name)
-    if key not in aggregates:
-        aggregates[key] = _create_node_aggregate(node=node, key=key, source=source)
+    try:
+        key = _node_key(node.canonical_name or node.name)
+        if key not in aggregates:
+            aggregates[key] = _create_node_aggregate(node=node, key=key, source=source)
+            return aggregates[key]
+
+        agg = aggregates[key]
+        if (
+            node.canonical_name
+            and node.canonical_name.lower() == agg.canonical_text.lower()
+        ):
+            agg.text = node.name
+
+        alias_set = set(agg.aliases)
+        alias_set.update(node.aliases or [])
+        agg.aliases = list(alias_set)
+
+        note_text = getattr(node, "notes", None)
+        if note_text and note_text not in agg.notes:
+            agg.notes.append(note_text)
+        if node.confidence is not None:
+            agg.confidence_samples.append(node.confidence)
+        agg.sources.append(source)
+        return agg
+    except Exception as e:
+        logger.debug(f"Error upserting node {getattr(node, 'name', 'unknown')}: {e}")
+        # Return a minimal aggregate to continue processing
+        key = _node_key(getattr(node, "name", "unknown"))
+        if key not in aggregates:
+            aggregates[key] = NodeAggregate(
+                node_key=key,
+                text=getattr(node, "name", "unknown"),
+                canonical_text=getattr(node, "name", "unknown"),
+                aliases=[],
+                notes=[],
+                confidence_samples=[],
+                linked_edges=[],
+                sources=[source],
+            )
         return aggregates[key]
-
-    agg = aggregates[key]
-    if (
-        node.canonical_name
-        and node.canonical_name.lower() == agg.canonical_text.lower()
-    ):
-        agg.text = node.name
-
-    # Use set operations for efficient deduplication
-    alias_set = set(agg.aliases)
-    alias_set.update(node.aliases or [])
-    agg.aliases = list(alias_set)
-
-    note_text = getattr(node, "notes", None)
-    if note_text and note_text not in agg.notes:
-        agg.notes.append(note_text)
-    if node.confidence is not None:
-        agg.confidence_samples.append(node.confidence)
-    agg.sources.append(source)
-    return agg
 
 
 def _create_node_aggregate(node, key: str, source: SourceMetadata) -> NodeAggregate:
@@ -103,27 +126,31 @@ def build_merge_index(output_dir: Path) -> MergeIndex:
 
         # Process each edge - current schema has paper -> target_node relationships
         for edge in data.edges:
-            target_node = edge.target_node
-            target_key = _node_key(target_node.canonical_name or target_node.name)
+            try:
+                target_node = edge.target_node
+                target_key = _node_key(target_node.canonical_name or target_node.name)
 
-            # Current schema: paper is implicit source, target_node is explicit
-            # Future schema could have explicit source_node -> target_node
-            source_key = f"paper:{source_metadata.paper_id}"
+                # Current schema: paper is implicit source, target_node is explicit
+                # Future schema could have explicit source_node -> target_node
+                source_key = f"paper:{source_metadata.paper_id}"
 
-            # Ensure target node aggregate exists
-            target_agg = _upsert_node_aggregate(
-                aggregates, target_node, source_metadata
-            )
+                # Ensure target node aggregate exists
+                target_agg = _upsert_node_aggregate(
+                    aggregates, target_node, source_metadata
+                )
 
-            # Create directional edge preserving the paper -> node relationship
-            edge_summary = _summarize_edge(
-                edge=edge,
-                source_node_key=source_key,
-                target_node_key=target_key,
-                source=source_metadata,
-            )
+                # Create directional edge preserving the paper -> node relationship
+                edge_summary = _summarize_edge(
+                    edge=edge,
+                    source_node_key=source_key,
+                    target_node_key=target_key,
+                    source=source_metadata,
+                )
 
-            # Add to target node's context
-            target_agg.linked_edges.append(edge_summary)
+                # Add to target node's context
+                target_agg.linked_edges.append(edge_summary)
+            except Exception as e:
+                logger.debug(f"Error processing edge in {json_path}: {e}")
+                continue
 
     return MergeIndex(nodes=aggregates)
