@@ -57,9 +57,12 @@ def _upsert_node_aggregate(
         and node.canonical_name.lower() == agg.canonical_text.lower()
     ):
         agg.text = node.name
-    for alias in node.aliases or []:
-        if alias not in agg.aliases:
-            agg.aliases.append(alias)
+
+    # Use set operations for efficient deduplication
+    alias_set = set(agg.aliases)
+    alias_set.update(node.aliases or [])
+    agg.aliases = list(alias_set)
+
     note_text = getattr(node, "notes", None)
     if note_text and note_text not in agg.notes:
         agg.notes.append(note_text)
