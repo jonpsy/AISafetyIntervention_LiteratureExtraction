@@ -50,9 +50,9 @@ You can put extracted files into FalkorDB to visualize. Start an instance with
 docker run -p 6379:6379 -p 3000:3000 -it --rm falkordb/falkordb:latest
 ```
 
-then fill it out with 
+then fill it out with
 
-`uv run src/db.py`
+`uv run src/db.py` and merge with `uv run src/merge.py`
 
 and you can see the result at <http://localhost:3000/graph>
 

@@ -11,4 +11,5 @@ dependencies = [
     "pre-commit>=4.3.0",
     "python-dotenv>=1.1.1",
     "tqdm>=4.67.1",
+    "usearch>=2.19.3",
 ]

@@ -96,6 +96,14 @@ For example, PROPOSES_MITIGATION is an incorrect edge type, and should be split 
 *   **Exclusions:** Do NOT extract authors, organizations, or bibliographic citations. The source of all extractions and edges is implicitly the current paper.
 
 ---
+**4. Examples:**
+
+*   Node name for "Reinforcement Learning from Human Feedback" should be `rlhf`.
+*   If paper improves on the dataset TruthfulQA, the edge type should be `IMPROVES_OVER` and the target node should be `truthfulqa`. Node name should be only the name of the dataset, `truthfulqa_improvement` is wrong
+*   Similarly, larger_pairwise_distributional_distance_better_truthfulness should be just node `truthfulness` and edge "better", with additional notes.
+*   To make it easier to merge, put the simplest form as name. For example, output `gpt-3` instead of `gpt-3_variants` and add variants into notes and aliases. Similarly, use `gpt-3.5-turbo` instead of `gpt_3_5_turbo_0613`
+*   Split nodes into several. Create two different nodes `few_shot` and `chain_of_thought` with a type `prompt` instead of creating one node `few_shot_and_cot_prompts`. "and", "vs" and similar combinations are forbidden in node names.
+---
 
 **Your Task:**
 Based on the paper content provided to you, generate a single JSON object with the final knowledge graph. The JSON object must conform to the schema provided.

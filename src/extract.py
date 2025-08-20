@@ -89,4 +89,4 @@ class Extractor:
 
 if __name__ == "__main__":
     extractor = Extractor()
-    extractor.process_dir(INPUT_DIR, 5)
+    extractor.process_dir(INPUT_DIR, 10)
