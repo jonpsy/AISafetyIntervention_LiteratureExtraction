@@ -1,5 +1,6 @@
-from typing import Any, Dict, List, Literal, Optional
+from typing import List, Literal, Optional
 from pydantic import BaseModel, Field, ConfigDict
+
 
 class Node(BaseModel):
     name: str = Field(default=None, description="concise natural-language description of node")
@@ -11,6 +12,7 @@ class Node(BaseModel):
     intervention_maturity: Optional[int] = Field(default=None, ge=1, le=4, description="1-4 (only for intervention nodes)")
     model_config = ConfigDict(extra="forbid")
 
+
 class Edge(BaseModel):
     type: str = Field(default=None, description="relationship label verb")
     source_node: str = Field(default=None, description="source node name")
@@ -18,13 +20,15 @@ class Edge(BaseModel):
     description: str = Field(default=None, description="concise description of logical connection")
     edge_confidence: int = Field(default=None, ge=1, le=5, description="1-5")
     model_config = ConfigDict(extra="forbid")
-    
+
+
 class LogicalChain(BaseModel):
     title: str = Field(default=None, description="concise natural-language description of logical chain")
     edges: List[Edge]
     model_config = ConfigDict(extra="forbid")
 
+
 class PaperSchema(BaseModel):
     nodes: List[Node]
-    logical_chains: List[LogicalChain1]
+    logical_chains: List[LogicalChain]
     model_config = ConfigDict(extra="forbid")

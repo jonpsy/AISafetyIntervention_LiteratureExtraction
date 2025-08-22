@@ -1,4 +1,6 @@
 .env
+intervention_graph_creation/data/processed/*
+intervention_graph_creation/data/raw/pdfs_local/*
 .ipynb_checkpoints
 .venv
 output
@@ -7,6 +9,7 @@ __pycache__
 embeddings
 .DS_Store
 Thumbs.db
+.idea
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

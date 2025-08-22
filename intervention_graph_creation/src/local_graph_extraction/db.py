@@ -4,7 +4,7 @@ from falkordb import FalkorDB
 from tqdm import tqdm
 
 try:
-    from src.prompts import OutputSchema
+    from intervention_graph_creation.src.prompts import OutputSchema
 except ImportError:
     from prompts import OutputSchema
 
@@ -54,7 +54,7 @@ class AISafetyGraph:
         )
 
     def ingest_dir(self, output_dir: str = "output") -> None:
-        paths = Path(".").glob(f"{output_dir}/*.json")
+        paths = Path("").glob(f"{output_dir}/*.json")
         paths = [x for x in paths if x.is_file() and "raw_response" not in x.name]
         for json_path in tqdm(paths):
             with open(json_path, "r", encoding="utf-8") as f:

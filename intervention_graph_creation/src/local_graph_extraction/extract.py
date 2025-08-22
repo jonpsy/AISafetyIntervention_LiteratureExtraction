@@ -5,10 +5,8 @@ from dotenv import load_dotenv
 from openai import OpenAI
 from tqdm import tqdm
 
-try:
-    from src.prompts import EXTRACTION_PROMPT_TEMPLATE, OutputSchema
-except ImportError:
-    from prompts import EXTRACTION_PROMPT_TEMPLATE, OutputSchema
+from intervention_graph_creation.src.prompt.final_primary_prompt import PROMPT_EXTRACT
+from core import PaperSchema
 
 
 load_dotenv()
@@ -17,8 +15,8 @@ MODEL = "gpt-5-2025-08-07"
 # https://platform.openai.com/docs/guides/reasoning
 # REASONING_EFFORT = "high"
 REASONING_EFFORT = "minimal"
-INPUT_DIR = Path("inputdata_development_paper_set")
-OUTPUT_DIR = Path("output")
+INPUT_DIR = Path("./intervention_graph_creation/data/raw/pdfs_local")
+OUTPUT_DIR = Path("./intervention_graph_creation/data/processed")
 
 
 class Extractor:
@@ -42,7 +40,7 @@ class Extractor:
                 "role": "user",
                 "content": [
                     {"type": "input_file", "file_id": file_id},
-                    {"type": "input_text", "text": EXTRACTION_PROMPT_TEMPLATE},
+                    {"type": "input_text", "text": PROMPT_EXTRACT},
                 ],
             }
         ]
@@ -57,15 +55,14 @@ class Extractor:
             reasoning={
                 "effort": REASONING_EFFORT,
                 # "summary": "auto",
-            },
-            text_format=OutputSchema,
+            }
         )
         return response
 
     def process_dir(self, input_dir: Path, first_n: Optional[int] = None) -> None:
         self.ensure_dir(OUTPUT_DIR)
 
-        pdf_paths = sorted(input_dir.glob("*.pdf"))
+        pdf_paths = sorted(input_dir.absolute().glob("*.pdf"))
         if first_n:
             pdf_paths = pdf_paths[:first_n]
         processed_papers = set([x.stem for x in OUTPUT_DIR.glob("*.json")])
@@ -89,4 +86,4 @@ class Extractor:
 
 if __name__ == "__main__":
     extractor = Extractor()
-    extractor.process_dir(INPUT_DIR, 10)
+    extractor.process_dir(INPUT_DIR, 1)
