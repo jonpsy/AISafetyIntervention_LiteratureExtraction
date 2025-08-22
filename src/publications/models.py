@@ -13,6 +13,7 @@ class Publication:
     references: Optional[str] = None
     abstract: Optional[str] = None
     url: Optional[str] = None
+    pdf_file_path: Optional[str] = None
 
     def __post_init__(self) -> None:
         # If references not provided, attempt to split them from the text heuristically

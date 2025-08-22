@@ -86,6 +86,7 @@ def load_publications_from_folder(folder_path: str) -> List[Publication]:
             text=text,
             abstract=summary,
             url=url,
+            pdf_file_path=pdf_path,
         )
         publications.append(pub)
 
@@ -123,6 +124,7 @@ def load_publications_from_arxiv_ids(
             raise ValueError(f"Missing published date from arXiv metadata for id {arxiv_id}")
 
         text = ""
+        pdf_path = None
         if download_pdf:
             url = f"https://arxiv.org/pdf/{arxiv_id}.pdf"
             filename = url.rsplit("/", 1)[-1]
@@ -139,6 +141,7 @@ def load_publications_from_arxiv_ids(
                 text=text,
                 abstract=s,
                 url=f"https://arxiv.org/abs/{arxiv_id}",
+                pdf_file_path=pdf_path,
             )
         )
 
