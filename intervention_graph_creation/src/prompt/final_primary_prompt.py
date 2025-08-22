@@ -1,4 +1,4 @@
-PROMPT_EXTRACT= """
+PROMPT_EXTRACT = """
 # AI Safety Intervention Extraction Prompt
 
 You are an expert AI safety researcher tasked with extracting key concepts and interventions from academic papers to build a comprehensive knowledge graph. Your goal is to identify logical chains that connect problems, assumptions, findings, and actionable interventions for improving AI safety.
