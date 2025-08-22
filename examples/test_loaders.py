@@ -95,7 +95,7 @@ def test_load_from_arxiv_ids():
     print(f"Loaded {len(pubs)} publications from arXiv IDs: {ids}")
     for p in pubs:
         refs_len = len(p.references) if p.references else 0
-        print(f"- {p.title} | authors={len(p.authors)} | date={p.date_published} | abstract_len={len(p.abstract)} | text_len={len(p.text)} | refs_len={refs_len}")
+        print(f"- {p.title} | authors={len(p.authors)} | date={p.date_published} | abstract_len={len(p.abstract)} | text_len={len(p.text)} | refs_len={refs_len} | pdf_path={p.pdf_file_path}")
 
 
 if __name__ == "__main__":
