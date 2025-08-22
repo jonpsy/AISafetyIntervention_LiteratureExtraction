@@ -75,13 +75,14 @@ class Extractor:
             response = self.call_openai(messages)
 
             raw_path = OUTPUT_DIR / f"{pdf_path.stem}_raw_response.json"
+            raw_response = response.model_dump_json()
             with raw_path.open("w", encoding="utf-8") as f:
-                f.write(response.model_dump_json())
+                f.write(raw_response)
 
-            output_parsed = response.output_parsed
+            output_parsed = response.output_text
             output_parsed_path = OUTPUT_DIR / f"{pdf_path.stem}.json"
             with output_parsed_path.open("w", encoding="utf-8") as f:
-                f.write(output_parsed.model_dump_json(indent=2))
+                f.write(output_parsed)
 
 
 if __name__ == "__main__":
