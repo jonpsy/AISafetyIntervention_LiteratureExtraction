@@ -8,15 +8,13 @@ from dotenv import load_dotenv
 from openai import OpenAI
 from tqdm import tqdm
 
-from config import PROJECT_ROOT
+from config import INPUT_DIR, OUTPUT_DIR
 from intervention_graph_creation.src.prompt.final_primary_prompt import PROMPT_EXTRACT
 
 load_dotenv()
 
 MODEL = "gpt-5-2025-08-07"
 REASONING_EFFORT = "minimal"
-INPUT_DIR = PROJECT_ROOT / "./intervention_graph_creation/data/raw/pdfs_local"
-OUTPUT_DIR = PROJECT_ROOT / "./intervention_graph_creation/data/processed"
 FENCE_RE = re.compile(r"```(?:json)?\s*(\{.*?\})\s*```", re.S | re.I)
 
 
@@ -128,4 +126,4 @@ class Extractor:
 
 if __name__ == "__main__":
     extractor = Extractor()
-    extractor.process_dir(INPUT_DIR, 1)
+    extractor.process_dir(INPUT_DIR, 2)

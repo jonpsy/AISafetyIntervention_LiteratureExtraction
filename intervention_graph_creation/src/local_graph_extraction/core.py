@@ -83,12 +83,12 @@ class Edge(BaseModel):
 
 
 class LogicalChain(BaseModel):
-    title: str = Field(default=None, description="concise natural-language description of logical chain")
-    edges: List[Edge]
+    title: Optional[str] = Field(default=None, description="concise natural-language description of logical chain")
+    edges: List[Edge] = Field(default_factory=list)
     model_config = ConfigDict(extra="forbid")
 
 
 class PaperSchema(BaseModel):
-    nodes: List[Node]
-    logical_chains: List[LogicalChain]
+    nodes: List[Node] = Field(default_factory=list)
+    logical_chains: List[LogicalChain] = Field(default_factory=list)
     model_config = ConfigDict(extra="forbid")

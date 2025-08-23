@@ -2,16 +2,16 @@ from pathlib import Path
 import json
 from falkordb import FalkorDB
 from tqdm import tqdm
+from typing import List
 
-try:
-    from intervention_graph_creation.src.prompts import OutputSchema
-except ImportError:
-    from prompts import OutputSchema
+from config import FALKORDB_PORT, FALKORDB_HOST, OUTPUT_DIR
+from intervention_graph_creation.src.local_graph_extraction.core import Node, Edge, PaperSchema
 
-HOST = "localhost"
-PORT = 6379
-GRAPH = "AISafetyIntervention"
 
+
+
+
+# -------------------------- DB helper --------------------------
 
 def lit(v):
     if v is None:
@@ -25,119 +25,157 @@ def lit(v):
     return "'" + str(v).replace("\\", "\\\\").replace("'", "\\'") + "'"
 
 
+def label_for(node_type: str) -> str:
+    return "Concept" if node_type == "concept" else "Intervention"
+
+
+# -------------------------- Core ingestor --------------------------
+
 class AISafetyGraph:
-    """Minimal wrapper for FalkorDB ingestion for AISafetyIntervention graph."""
-
     def __init__(self) -> None:
-        self.db = FalkorDB(host=HOST, port=PORT)
+        self.db = FalkorDB(host=FALKORDB_HOST, port=FALKORDB_PORT)
 
-    def upsert_paper(self, paper_id: str) -> None:
-        g = self.db.select_graph(GRAPH)
-        g.query(f"MERGE (p:PAPER {{id: '{paper_id}'}}) RETURN p")
+    # ---------- nodes ----------
 
-    def upsert_edge(self, paper_id: str, edge) -> None:
+    def upsert_node(self, node: Node, paper_id: str) -> None:
         g = self.db.select_graph(GRAPH)
-        n = edge.target_node
+        label = label_for(node.type)
+        # Uniqueness by (name, type) → prevents duplicates for same typed name
         g.query(
-            f"MERGE (t:{n.type} {{name: {lit(n.name)}}}) "
-            f"SET t.canonical_name = {lit(n.canonical_name)}, "
-            f"t.aliases = {lit(n.aliases)}, "
-            f"t.confidence = {lit(n.confidence)}, "
-            f"t.notes = {lit(n.notes)} "
-            f"RETURN t"
-        )
-        g.query(
-            f"MATCH (p:PAPER {{id: '{paper_id}'}}), (t:{n.type} {{name: {lit(n.name)}}}) "
-            f"MERGE (p)-[r:{edge.type}]->(t) "
-            f"SET r.rationale = {lit(edge.rationale)}, r.confidence = {lit(edge.confidence)} "
-            f"RETURN 1"
+            f"MERGE (n:{label} {{name: {lit(node.name)}, type: {lit(node.type)}}}) "
+            f"SET n.description = {lit(node.description)}, "
+            f"n.aliases = {lit(node.aliases)}, "
+            f"n.concept_category = {lit(node.concept_category)}, "
+            f"n.intervention_lifecycle = {lit(node.intervention_lifecycle)}, "
+            f"n.intervention_maturity = {lit(node.intervention_maturity)}, "
+            f"n.paper_id = {lit(paper_id)} "
+            f"RETURN n"
         )
 
-    def ingest_dir(self, output_dir: str = "output") -> None:
-        paths = Path("").glob(f"{output_dir}/*.json")
-        paths = [x for x in paths if x.is_file() and "raw_response" not in x.name]
-        for json_path in tqdm(paths):
-            with open(json_path, "r", encoding="utf-8") as f:
-                data = json.load(f)
-            doc = OutputSchema(**data)
-            paper_id = json_path.stem
-            self.upsert_paper(paper_id)
-            for edge in doc.edges:
-                self.upsert_edge(paper_id, edge)
+    # ---------- edges ----------
+    # Multiple edges between same nodes are allowed,
+    # but for the same etype we update the existing edge (MERGE by etype).
 
-    def get_nodes(self) -> list[dict]:
+    def upsert_edge(self, edge: Edge, paper_id: str) -> None:
         g = self.db.select_graph(GRAPH)
-        res = g.ro_query(
-            "MATCH (n) RETURN ID(n) AS id, labels(n) AS labels, n AS node "
+        s = lit(edge.source_node)
+        t = lit(edge.target_node)
+        etype = lit(edge.type)
+
+        # Ensure endpoints exist (by name only; labels may be added elsewhere)
+        g.query(f"MERGE (a {{name: {s}}}) RETURN a")
+        g.query(f"MERGE (b {{name: {t}}}) RETURN b")
+
+        # One :EDGE per (a,b,etype). If exists → update props; else → create.
+        g.query(
+            "MATCH (a {name: " + s + "}), (b {name: " + t + "}) "
+            "MERGE (a)-[r:EDGE {etype: " + etype + "}]->(b) "
+            "SET r.description = " + lit(edge.description) + ", "
+            "    r.edge_confidence = " + lit(edge.edge_confidence) + ", "
+            "    r.paper_id = " + lit(paper_id) + " "
+            "RETURN r"
         )
 
+    # ---------- ingest ----------
+
+    def ingest_file(self, json_path: Path) -> None:
+        data = json.loads(Path(json_path).read_text(encoding="utf-8"))
+        doc = PaperSchema(**data)
+
+        # Basic file-level checks
+        names = [n.name for n in doc.nodes]
+        if len(names) != len(set(names)):
+            dupes = sorted({x for x in names if names.count(x) > 1})
+            raise ValueError(f"Duplicate node names in {json_path.name}: {dupes}")
+
+        known = set(names)
+        missing = [
+            (e.source_node, e.target_node)
+            for ch in doc.logical_chains
+            for e in ch.edges
+            if e.source_node not in known or e.target_node not in known
+        ]
+        if missing:
+            raise ValueError(f"Edges reference unknown nodes in {json_path.name}: {missing[:5]}...")
+
+        paper_id = json_path.stem
+
+        for n in doc.nodes:
+            self.upsert_node(n, paper_id)
+
+        for ch in doc.logical_chains:
+            for e in ch.edges:
+                self.upsert_edge(e, paper_id)
+
+    def ingest_dir(self, input_dir: str = OUTPUT_DIR) -> None:
+        base = Path(input_dir)
+        subdirs = [d for d in base.iterdir() if d.is_dir()]
+        for d in tqdm(sorted(subdirs)):
+            json_path = d / f"{d.name}.json"
+            if not json_path.exists():
+                print(f"⚠️ Skipping {d.name}: {json_path} not found")
+                continue
+            self.ingest_file(json_path)
+
+    # ---------- utils ----------
+
+    def get_nodes(self) -> List[dict]:
+        g = self.db.select_graph(GRAPH)
+        res = g.ro_query("MATCH (n) RETURN ID(n) AS id, labels(n) AS labels, n AS node")
         out = []
         for row in res.result_set:
             node_id = row[0]
             labels = row[1] or []
             node = row[2]
             props = node.properties or {}
-
             parts = []
-            for k in props.keys():
-                if k in ("confidence", "id"):
+            for k, v in props.items():
+                if k in ("id",):
                     continue
-                v = props[k]
                 if isinstance(v, str):
                     v_str = v
                 elif isinstance(v, (list, tuple)):
                     v_str = ", ".join(str(x) for x in v)
                 else:
                     v_str = str(v)
-                if len(v_str) > 0:
+                if v_str:
                     parts.append(f"{k}={v_str}")
-
             text = "; ".join(parts) if parts else ""
             if text:
-                out.append(
-                    {
-                        "id": node_id,
-                        "labels": labels,
-                        "text": text,
-                    }
-                )
+                out.append({"id": node_id, "labels": labels, "text": text})
         return out
 
-    def merge_nodes(self, keep_id: int, remove_id: int):
+    def merge_nodes(self, keep_name: str, remove_name: str):
         """
-        TODO: use FalkorDB vector index to find ids
-        """
-
-        q = f"""
-        MATCH (n) WHERE ID(n) = {remove_id}
-        OPTIONAL MATCH (n)-[r]->() RETURN DISTINCT type(r) AS t
-        UNION
-        MATCH (n) WHERE ID(n) = {remove_id}
-        OPTIONAL MATCH ()-[r]->(n) RETURN DISTINCT type(r) AS t
+        Merge two nodes identified by name.
+        Moves all relationships from remove_name -> keep_name, then deletes remove_name.
         """
         graph = self.db.select_graph(GRAPH)
+
+        q = f"""
+        MATCH (n {{name: {lit(remove_name)}}})
+        OPTIONAL MATCH (n)-[r]->() RETURN DISTINCT type(r) AS t
+        UNION
+        MATCH (n {{name: {lit(remove_name)}}})
+        OPTIONAL MATCH ()-[r]->(n) RETURN DISTINCT type(r) AS t
+        """
         result = graph.query(q)
         rel_types = [r[0] for r in result.result_set if r[0] is not None]
 
         if not rel_types:
-            graph.query(f"MATCH (a) WHERE ID(a) = {remove_id} DELETE a")
-            return
+            return graph.query(f"MATCH (a {{name: {lit(remove_name)}}}) DELETE a")
 
         parts = []
         for rtype in rel_types:
             parts.append(f"""
-            // outgoing {rtype}
-            OPTIONAL MATCH (a)-[r:{rtype}]->(m)
-            WITH a, b, r, m
+            OPTIONAL MATCH (a {{name: {lit(remove_name)}}})-[r:{rtype}]->(m)
+            MATCH (b {{name: {lit(keep_name)}}})
             FOREACH (_ IN CASE WHEN m IS NULL THEN [] ELSE [1] END |
                 MERGE (b)-[r2:{rtype}]->(m)
                 SET r2 += r
             )
             WITH a, b
-
-            // incoming {rtype}
-            OPTIONAL MATCH (m2)-[s:{rtype}]->(a)
-            WITH a, b, s, m2
+            OPTIONAL MATCH (m2)-[s:{rtype}]->(a {{name: {lit(remove_name)}}})
             FOREACH (_ IN CASE WHEN m2 IS NULL THEN [] ELSE [1] END |
                 MERGE (m2)-[s2:{rtype}]->(b)
                 SET s2 += s
@@ -146,17 +184,15 @@ class AISafetyGraph:
             """)
 
         merge_query = f"""
-        MATCH (a), (b)
-        WHERE ID(a) = {remove_id} AND ID(b) = {keep_id}
+        MATCH (a {{name: {lit(remove_name)}}}), (b {{name: {lit(keep_name)}}})
         {"".join(parts)}
         DELETE a
         """
-
         return graph.query(merge_query)
 
 
 def main():
-    AISafetyGraph().ingest_dir("output")
+    AISafetyGraph().ingest_dir(OUTPUT_DIR)
 
 
 if __name__ == "__main__":
