@@ -1,0 +1,24 @@
+Development Paper Set (per ChatGPT, Claude was not successful)
+
+Topical Area: AI Deception and Truthfulness
+
+https://arxiv.org/abs/2311.07590 - Large Language Models can Strategically Deceive their Users when Put Under Pressure
+https://arxiv.org/abs/2502.08301 - Compromising Honesty and Harmlessness in Language Models via Deception Attacks
+https://arxiv.org/abs/2307.16513 - Deception Abilities Emerged in Large Language Models
+https://arxiv.org/abs/2405.01576 - Uncovering Deceptive Tendencies in Language Models: A Simulated Company AI Assistant
+https://arxiv.org/abs/2504.13707 - OpenDeception: Benchmarking and Investigating AI Deceptive Behaviors via Open‑ended Interaction Simulation
+https://arxiv.org/abs/2403.09676 - Unmasking the Shadows of AI: Investigating Deceptive Capabilities in Large Language Models
+https://arxiv.org/abs/2311.14876 - Exploiting Large Language Models (LLMs) through Deception Techniques and Persuasion Principles
+https://arxiv.org/abs/2408.00024 - Deceptive AI systems that give explanations are more convincing than honest AI systems and can amplify belief in misinformation
+https://arxiv.org/abs/2406.13261 - BeHonest: Benchmarking Honesty in Large Language Models
+https://arxiv.org/abs/2501.16513 - Deception in LLMs: Self‑Preservation and Autonomous Goals in Large Language Models
+https://arxiv.org/abs/2405.12999 - An Assessment of Model‑on‑Model Deception
+https://arxiv.org/abs/2405.04325 - Deception in Reinforced Autonomous Agents
+https://arxiv.org/abs/2402.18048 - Characterizing Truthfulness in Large Language Model Generations with Local Intrinsic Dimension
+https://arxiv.org/abs/2310.12558 - Large Language Models Help Humans Verify Truthfulness -- Except When They Are Convincingly Wrong
+https://arxiv.org/abs/2409.18786 - A Survey on the Honesty of Large Language Models
+https://arxiv.org/abs/2401.12292 - GRATH: Gradual Self‑Truthifying for Large Language Models
+https://arxiv.org/abs/2311.07092 - To Tell The Truth: Language of Deception and Language Models
+https://arxiv.org/abs/2401.06373 - How Johnny Can Persuade LLMs to Jailbreak Them: Rethinking Persuasion to Challenge AI Safety by Humanizing LLMs
+https://arxiv.org/abs/2308.14752 - AI Deception: A Survey of Examples, Risks, and Potential Solutions
+https://arxiv.org/abs/2310.01405 - Representation Engineering: A Top-Down Approach to AI Transparency

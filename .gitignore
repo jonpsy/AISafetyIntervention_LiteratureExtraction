@@ -11,6 +11,11 @@ embeddings
 Thumbs.db
 .idea
 
+# hard assets
+data/**/*.pdf
+data/**/*.json
+data/**/*.jsonl
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
