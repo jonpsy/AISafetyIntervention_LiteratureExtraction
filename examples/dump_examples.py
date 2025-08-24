@@ -67,7 +67,7 @@ def dump_for_pdfs(pdf_dir: str, out_dir: str, limit: int = 5) -> List[Tuple[str,
 
 
 def main() -> None:
-    pdf_dir = os.path.join(REPO_ROOT, "inputdata_development_paper_set")
+    pdf_dir = os.path.join(REPO_ROOT, "arxiv_pdfs_test")
     out_dir = os.path.join(REPO_ROOT, "examples_output")
     if not os.path.isdir(pdf_dir):
         raise SystemExit(f"PDF directory not found: {pdf_dir}")

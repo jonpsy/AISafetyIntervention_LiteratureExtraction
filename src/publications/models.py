@@ -13,6 +13,7 @@ class Publication:
     references: Optional[str] = None
     abstract: Optional[str] = None
     url: Optional[str] = None
+    pdf_file_path: Optional[str] = None
 
     def __post_init__(self) -> None:
         # If references not provided, attempt to split them from the text heuristically
@@ -26,3 +27,14 @@ class Publication:
             except Exception:
                 # On any failure, keep original text and None references
                 pass
+
+        # If PDF file path provided, remove the references from the file
+        if self.pdf_file_path and self.references:
+            try:
+                from .utils import remove_references_from_pdf  # local import to avoid circular deps
+
+                remove_references_from_pdf(self.pdf_file_path)
+            except Exception as e:
+                # On any failure, log the error but don't crash
+                import logging
+                logging.getLogger(__name__).warning(f"Failed to modify PDF {self.pdf_file_path}: {e}")

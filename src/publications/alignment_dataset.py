@@ -65,6 +65,12 @@ def load_publications_from_local_ard(path_or_dir: str, strict: bool = False) -> 
             text = rec.get("text")
             if text is None:
                 text = ""
+            
+            # Skip publications with empty text
+            if not str(text).strip():
+                logger.debug("Skipping publication with empty text: %s", title)
+                continue
+            
             url = rec.get("url")
             if url is None:
                 url = None
