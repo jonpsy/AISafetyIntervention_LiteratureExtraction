@@ -2,13 +2,13 @@ import os
 import sys
 from typing import List, Tuple
 
-# Ensure 'src' is on sys.path so 'publications' package is importable when running directly
+# Ensure 'src' is on sys.path so 'data_interfaces' package is importable when running directly
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
 SRC_DIR = os.path.join(REPO_ROOT, "src")
 if SRC_DIR not in sys.path:
     sys.path.insert(0, SRC_DIR)
 
-from publications.utils import split_references, parse_arxiv_id_from_filename  # type: ignore
+from data_interfaces.utils import split_references, parse_arxiv_id_from_filename  # type: ignore
 
 
 def extract_text_from_pdf(file_path: str) -> str:

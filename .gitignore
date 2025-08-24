@@ -1,4 +1,10 @@
+# macOS
 .DS_Store
+
+# hard assets
+data/**/*.pdf
+data/**/*.json
+data/**/*.jsonl
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

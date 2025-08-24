@@ -6,19 +6,19 @@ import logging
 logging.basicConfig(level=logging.ERROR)
 
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
-INPUT_PDF_DIR = os.path.join(REPO_ROOT, "inputdata_development_paper_set")
+INPUT_PDF_DIR = os.path.join(REPO_ROOT, "data", "raw", "pdfs_local")
 
-# Ensure 'src' is on sys.path so 'publications' package is importable when running directly
+# Ensure 'src' is on sys.path so 'data_interfaces' package is importable when running directly
 SRC_DIR = os.path.join(REPO_ROOT, "src")
 if SRC_DIR not in sys.path:
     sys.path.insert(0, SRC_DIR)
 
-from publications import (
+from data_interfaces import (
     load_publications_from_folder,
     load_publications_from_hf_ard,
     load_publications_from_arxiv_ids,
 )
-from publications.utils import parse_arxiv_id_from_filename, extract_arxiv_id_from_url
+from data_interfaces.utils import parse_arxiv_id_from_filename, extract_arxiv_id_from_url
 
 import re
 
@@ -37,7 +37,7 @@ def test_load_from_hf():
     try:
         pubs = load_publications_from_hf_ard(
             repo_id="StampyAI/alignment-research-dataset",
-            local_dir=os.path.join(REPO_ROOT, "alignment-research-dataset"),
+            local_dir=os.path.join(REPO_ROOT, "data", "raw", "ard_json"),
             dedupe=True,
         )
         print(f"Loaded {len(pubs)} publications from HF ARD")
@@ -90,7 +90,7 @@ def test_load_from_arxiv_ids():
     # Keep the test lightweight
     ids = ids[:3]
     pubs = load_publications_from_arxiv_ids(
-        ids, download_pdf=True, pdf_dir=os.path.join(REPO_ROOT, "arxiv_pdfs_test")
+        ids, download_pdf=True, pdf_dir=os.path.join(REPO_ROOT, "data", "raw", "pdfs_local")
     )
     print(f"Loaded {len(pubs)} publications from arXiv IDs: {ids}")
     for p in pubs:
