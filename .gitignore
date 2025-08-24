@@ -1,5 +1,15 @@
-# macOS
+.env
+intervention_graph_creation/data/processed/*
+intervention_graph_creation/data/raw/pdfs_local/*
+.ipynb_checkpoints
+.venv
+output
+__pycache__
+.ruff_cache
+embeddings
 .DS_Store
+Thumbs.db
+.idea
 
 # hard assets
 data/**/*.pdf
@@ -10,9 +20,6 @@ data/**/*.jsonl
 __pycache__/
 *.py[codz]
 *$py.class
-alignment-research-dataset/
-
-examples_output/
 
 # C extensions
 *.so
@@ -212,4 +219,3 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
-
