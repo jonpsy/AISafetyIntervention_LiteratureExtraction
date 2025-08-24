@@ -7,8 +7,7 @@ import xml.etree.ElementTree as ET
 from typing import List, Optional, Tuple
 from pypdf import PdfReader
 
-from publications.utils import parse_arxiv_id_from_filename
-
+from .utils import parse_arxiv_id_from_filename
 from .models import Publication
 
 logger = logging.getLogger(__name__)
