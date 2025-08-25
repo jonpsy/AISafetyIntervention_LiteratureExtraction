@@ -1,15 +1,43 @@
+[build-system]
+requires = ["hatchling>=1.25.0"]
+build-backend = "hatchling.build"
+
 [project]
 name = "aisafetyintervention-literatureextraction"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.11"
+
 dependencies = [
+    "openai>=1.101.0",
     "falkordb>=1.2.0",
-    "jupyterlab>=4.4.5",
-    "openai>=1.99.7",
-    "pre-commit>=4.3.0",
     "python-dotenv>=1.1.1",
     "tqdm>=4.67.1",
     "usearch>=2.19.3",
+    "pydantic>=2.11.7",
+    "numpy>=1.24.4",
+    "networkx>=3.4.2",
+    "pyvis>=0.3.2",
+    "pypdf>=4.2.0",
+    "huggingface_hub>=0.24.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "jupyterlab>=4.4.5",
+    "pre-commit>=4.3.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["intervention_graph_creation"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+  "/intervention_graph_creation",
+  "/pyproject.toml",
+  "/README.md",
+]
+exclude = [
+  "/notebooks",
 ]
