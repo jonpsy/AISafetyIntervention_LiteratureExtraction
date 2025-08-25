@@ -1,9 +1,9 @@
 import json
 import logging
 from pathlib import Path
-from .local_graph import LocalGraph, GraphNode, GraphEdge
-from .flows.embedder_flow import EmbedderFlow
-from .flows.metadata_flow import create_metadata_flow
+from ..src.pipeline.local_graph import LocalGraph, GraphNode, GraphEdge
+from ..src.pipeline.flows.embedder_flow import EmbedderFlow
+from ..src.pipeline.flows.metadata_flow import create_metadata_flow
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
