@@ -4,32 +4,10 @@ from falkordb import FalkorDB
 from tqdm import tqdm
 from typing import List
 
-from config import FALKORDB_PORT, FALKORDB_HOST, OUTPUT_DIR
+from config import FALKORDB_PORT, FALKORDB_HOST, OUTPUT_DIR, FALKORDB_GRAPH
 from intervention_graph_creation.src.local_graph_extraction.core import Node, Edge, PaperSchema
+from intervention_graph_creation.src.local_graph_extraction.db.helpers import label_for, lit
 
-
-
-
-
-# -------------------------- DB helper --------------------------
-
-def lit(v):
-    if v is None:
-        return "NULL"
-    if isinstance(v, (int, float)):
-        return str(v)
-    if isinstance(v, str):
-        return "'" + v.replace("\\", "\\\\").replace("'", "\\'") + "'"
-    if isinstance(v, (list, tuple)):
-        return "[" + ", ".join(lit(x) for x in v) + "]"
-    return "'" + str(v).replace("\\", "\\\\").replace("'", "\\'") + "'"
-
-
-def label_for(node_type: str) -> str:
-    return "Concept" if node_type == "concept" else "Intervention"
-
-
-# -------------------------- Core ingestor --------------------------
 
 class AISafetyGraph:
     def __init__(self) -> None:
@@ -38,7 +16,7 @@ class AISafetyGraph:
     # ---------- nodes ----------
 
     def upsert_node(self, node: Node, paper_id: str) -> None:
-        g = self.db.select_graph(GRAPH)
+        g = self.db.select_graph(FALKORDB_GRAPH)
         label = label_for(node.type)
         # Uniqueness by (name, type) → prevents duplicates for same typed name
         g.query(
@@ -57,7 +35,7 @@ class AISafetyGraph:
     # but for the same etype we update the existing edge (MERGE by etype).
 
     def upsert_edge(self, edge: Edge, paper_id: str) -> None:
-        g = self.db.select_graph(GRAPH)
+        g = self.db.select_graph(FALKORDB_GRAPH)
         s = lit(edge.source_node)
         t = lit(edge.target_node)
         etype = lit(edge.type)
@@ -120,7 +98,7 @@ class AISafetyGraph:
     # ---------- utils ----------
 
     def get_nodes(self) -> List[dict]:
-        g = self.db.select_graph(GRAPH)
+        g = self.db.select_graph(FALKORDB_GRAPH)
         res = g.ro_query("MATCH (n) RETURN ID(n) AS id, labels(n) AS labels, n AS node")
         out = []
         for row in res.result_set:
@@ -150,7 +128,7 @@ class AISafetyGraph:
         Merge two nodes identified by name.
         Moves all relationships from remove_name -> keep_name, then deletes remove_name.
         """
-        graph = self.db.select_graph(GRAPH)
+        graph = self.db.select_graph(FALKORDB_GRAPH)
 
         q = f"""
         MATCH (n {{name: {lit(remove_name)}}})
