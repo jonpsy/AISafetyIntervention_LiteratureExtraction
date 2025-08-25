@@ -25,19 +25,36 @@ def iter_jsonl(path: str | Path) -> Iterator[dict]:
 
 class EmbedderFlow(Flow):
     """Flow that loads JSONL data, converts to LocalGraph, and adds embeddings."""
-    
-    def __init__(self, next_flow: Optional[Flow] = None, model_name: str = "BAAI/bge-large-en-v1.5"):
+
+    def __init__(
+        self,
+        next_flow: Optional[Flow] = None,
+        model_name: str = "BAAI/bge-large-en-v1.5",
+    ):
         super().__init__(next_flow)
         self.model_name = model_name
         self.model = None  # Lazy loading
-    
-    def _load_jsonl_to_paper_schema(self, output_path: str) -> PaperSchema:
+
+    def _load_json_to_paper_schema(self, json_path: str) -> PaperSchema:
+        """Load regular JSON file and convert to PaperSchema."""
+        with open(json_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            return PaperSchema(**data)
+
+    def _load_jsonl_to_paper_schema(self, jsonl_path: str) -> PaperSchema:
         """Load JSONL file and convert to PaperSchema."""
-        # Load the first (and presumably only) line from the JSONL file
-        for item in iter_jsonl(output_path):
+        for item in iter_jsonl(jsonl_path):
             return PaperSchema(**item)
-        raise ValueError(f"No valid data found in {output_path}")
-    
+        raise ValueError(f"No valid data found in {jsonl_path}")
+
+    def _load_file_to_paper_schema(self, file_path: str) -> PaperSchema:
+        """Load JSON or JSONL file and convert to PaperSchema."""
+        # Try JSON first, then JSONL
+        try:
+            return self._load_json_to_paper_schema(file_path)
+        except json.JSONDecodeError:
+            return self._load_jsonl_to_paper_schema(file_path)
+
     def _convert_node_to_graph_node(self, node: Node) -> GraphNode:
         """Convert a Node to a GraphNode."""
         return GraphNode(
@@ -47,10 +64,12 @@ class EmbedderFlow(Flow):
             description=node.description,
             concept_category=node.concept_category,
             intervention_lifecycle=node.intervention_lifecycle,
-            intervention_maturity=node.intervention_maturity
+            intervention_maturity=node.intervention_maturity,
         )
-    
-    def _convert_edge_to_graph_edge(self, edge: Edge, concept_meta: Optional[str] = None) -> GraphEdge:
+
+    def _convert_edge_to_graph_edge(
+        self, edge: Edge, concept_meta: Optional[str] = None
+    ) -> GraphEdge:
         """Convert an Edge to a GraphEdge."""
         return GraphEdge(
             type=edge.type,
@@ -58,9 +77,9 @@ class EmbedderFlow(Flow):
             target_node=edge.target_node,
             description=edge.description,
             edge_confidence=edge.edge_confidence,
-            concept_meta=concept_meta
+            concept_meta=concept_meta,
         )
-    
+
     def _get_embedding(self, text: str) -> np.ndarray:
         """Get embedding for a given text using SentenceTransformers."""
         try:
@@ -68,7 +87,7 @@ class EmbedderFlow(Flow):
             if self.model is None:
                 print(f"Loading embedding model: {self.model_name}")
                 self.model = SentenceTransformer(self.model_name)
-            
+
             # Get embedding
             embedding = self.model.encode(text, convert_to_numpy=True)
             return embedding.astype(np.float32)
@@ -76,7 +95,7 @@ class EmbedderFlow(Flow):
             print(f"Error getting embedding for text: {e}")
             # Return zero vector as fallback (BGE-large-v1.5 has 1024 dimensions)
             return np.zeros(1024, dtype=np.float32)
-    
+
     def _add_embeddings_to_nodes(self, local_graph: LocalGraph) -> None:
         """Add embeddings to all nodes in the local graph."""
         for node in local_graph.nodes:
@@ -93,7 +112,7 @@ class EmbedderFlow(Flow):
 
             text = " | ".join(text_parts)
             node.embedding = self._get_embedding(text)
-    
+
     def _add_embeddings_to_edges(self, local_graph: LocalGraph) -> None:
         """Add embeddings to all edges in the local graph."""
         for edge in local_graph.edges:
@@ -109,46 +128,50 @@ class EmbedderFlow(Flow):
                 text_parts.append(f"From: {edge.source_node}")
             if edge.target_node:
                 text_parts.append(f"To: {edge.target_node}")
-            
+
             text = " | ".join(text_parts)
             edge.embedding = self._get_embedding(text)
-    
+
     def process(self, local_graph_or_path) -> LocalGraph:
         """
         Process the input and convert to LocalGraph with embeddings.
-        
+
         Args:
-            local_graph_or_path: Either a LocalGraph instance or path to JSONL file
-            
+            local_graph_or_path: Either a LocalGraph instance or path to JSON/JSONL file
+
         Returns:
             LocalGraph with embeddings added
         """
         # Handle both string path and LocalGraph input
         if isinstance(local_graph_or_path, str):
-            # Load JSONL and convert to PaperSchema
-            paper_schema = self._load_jsonl_to_paper_schema(local_graph_or_path)
-            
+            # Load JSON/JSONL file and convert to PaperSchema
+            paper_schema = self._load_file_to_paper_schema(local_graph_or_path)
+
             # Convert to LocalGraph
-            graph_nodes = [self._convert_node_to_graph_node(node) for node in paper_schema.nodes]
-            
+            graph_nodes = [
+                self._convert_node_to_graph_node(node) for node in paper_schema.nodes
+            ]
+
             # Convert logical chains to edges with concept metadata
             graph_edges = []
             for logical_chain in paper_schema.logical_chains:
                 for edge in logical_chain.edges:
-                    graph_edge = self._convert_edge_to_graph_edge(edge, logical_chain.title)
+                    graph_edge = self._convert_edge_to_graph_edge(
+                        edge, logical_chain.title
+                    )
                     graph_edges.append(graph_edge)
-            
+
             local_graph = LocalGraph(nodes=graph_nodes, edges=graph_edges)
         else:
             # Assume it's already a LocalGraph
             local_graph = local_graph_or_path
-        
+
         # Add embeddings
         print("Adding embeddings to nodes...")
         self._add_embeddings_to_nodes(local_graph)
-        
+
         print("Adding embeddings to edges...")
         self._add_embeddings_to_edges(local_graph)
-        
+
         # Pass to next flow in chain
         return self._call_next(local_graph)
