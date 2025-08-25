@@ -63,16 +63,16 @@ def test_all_metadata_functionality():
     # Store the loaded MetadataAdder to reuse in other tests
     shared_metadata_adder = metadata_flow._metadata_adder
 
-    # Verify metadata was added
+    # Verify publication was added
     sample_node = enriched_graph.nodes[0]
     sample_edge = enriched_graph.edges[0]
 
-    if sample_node.metadata and sample_edge.metadata:
-        logger.info("✅ Metadata added successfully")
-        logger.info(f"   Paper: {sample_node.metadata.title}")
-        logger.info(f"   Authors: {len(sample_node.metadata.authors)} authors")
+    if sample_node.publication and sample_edge.publication:
+        logger.info("✅ Publication metadata added successfully")
+        logger.info(f"   Paper: {sample_node.publication.title}")
+        logger.info(f"   Authors: {len(sample_node.publication.authors)} authors")
     else:
-        logger.error("❌ Metadata not found")
+        logger.error("❌ Publication metadata not found")
         return False
 
     # Test 2: File saving (reuse loaded MetadataAdder)
@@ -145,8 +145,8 @@ def test_all_metadata_functionality():
             )
 
             # Check if metadata exists in pipeline result
-            if pipeline_result.nodes[0].metadata:
-                logger.info(f"   Paper: {pipeline_result.nodes[0].metadata.title}")
+            if pipeline_result.nodes[0].publication:
+                logger.info(f"   Paper: {pipeline_result.nodes[0].publication.title}")
             else:
                 logger.warning("   No metadata in pipeline result")
         else:
@@ -163,8 +163,8 @@ def test_all_metadata_functionality():
 
     # Should still work but with unknown metadata
     if (
-        error_result.nodes[0].metadata
-        and error_result.nodes[0].metadata.source_type == "unknown"
+        error_result.nodes[0].publication
+        and error_result.nodes[0].publication.title == "Unknown"
     ):
         logger.info(
             "✅ Error handling works correctly (unknown paper → unknown metadata)"

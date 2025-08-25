@@ -5,7 +5,7 @@ from typing import Optional, Union
 
 from .base import Flow
 from ..local_graph import LocalGraph
-from ..metadata import Metadata
+from ...data_interfaces.models import Publication
 from ...local_graph_extraction.add_metadata import MetadataAdder
 
 logger = logging.getLogger(__name__)
@@ -74,50 +74,90 @@ class MetadataFlow(Flow):
         logger.warning("No source identifier provided, using 'unknown'")
         return "unknown"
 
-    def _create_metadata_from_publication(
+    def _get_publication_from_identifier(
         self, source_identifier: str
-    ) -> Optional[Metadata]:
-        """Create Metadata object from publication data."""
+    ) -> Optional[Publication]:
+        """Get Publication object from source identifier."""
         metadata_adder = self._get_metadata_adder()
         publication = metadata_adder.get_publication(source_identifier)
 
         if publication:
-            metadata_dict = metadata_adder.create_source_metadata(
-                publication, source_identifier
-            )
-            return Metadata.from_dict(metadata_dict)
+            return publication
         else:
-            # Create minimal metadata with just the identifier
             logger.warning(
                 f"Could not find publication for identifier: {source_identifier}"
             )
-            return Metadata(
-                paper_id=source_identifier,
-                title=None,
-                authors=None,
-                date_published=None,
-                url=None,
-                source_type="unknown",
+            # Create a minimal Publication object with unknown data
+            return Publication(
+                title="Unknown",
+                authors=[],
+                date_published="Unknown",
+                text="",
                 abstract=None,
+                url=None,
             )
 
-    def _add_metadata_to_nodes(
-        self, local_graph: LocalGraph, metadata: Metadata
+    def _add_publication_to_nodes(
+        self, local_graph: LocalGraph, publication: Publication
     ) -> None:
-        """Add metadata to all nodes in the local graph."""
+        """Add publication metadata to all nodes in the local graph."""
         for node in local_graph.nodes:
-            node.metadata = metadata
-            logger.debug(f"Added metadata to node: {node.name}")
+            node.publication = publication
+            logger.debug(f"Added publication to node: {node.name}")
 
-    def _add_metadata_to_edges(
-        self, local_graph: LocalGraph, metadata: Metadata
+    def _add_publication_to_edges(
+        self, local_graph: LocalGraph, publication: Publication
     ) -> None:
-        """Add metadata to all edges in the local graph."""
+        """Add publication metadata to all edges in the local graph."""
         for edge in local_graph.edges:
-            edge.metadata = metadata
+            edge.publication = publication
             logger.debug(
-                f"Added metadata to edge: {edge.type} ({edge.source_node} -> {edge.target_node})"
+                f"Added publication to edge: {edge.type} ({edge.source_node} -> {edge.target_node})"
             )
+
+    def _publication_to_source_metadata(self, publication: Publication) -> dict:
+        """Convert Publication object to source_metadata dictionary format."""
+        from ...data_interfaces.utils import extract_arxiv_id_from_url
+
+        # Determine source type from URL
+        source_type = "unknown"
+        if publication.url:
+            if "arxiv.org" in publication.url:
+                source_type = "arxiv"
+            elif "alignmentforum.org" in publication.url:
+                source_type = "alignmentforum"
+            elif "lesswrong.com" in publication.url:
+                source_type = "lesswrong"
+            elif "youtube.com" in publication.url or "youtu.be" in publication.url:
+                source_type = "youtube"
+            elif any(
+                domain in publication.url
+                for domain in ["blog", "medium.com", "substack.com"]
+            ):
+                source_type = "blog"
+
+        # Use ArXiv ID as paper_id if available
+        paper_id = "unknown"
+        if publication.url:
+            arxiv_id = extract_arxiv_id_from_url(publication.url)
+            if arxiv_id:
+                paper_id = arxiv_id
+
+        metadata = {
+            "paper_id": paper_id,
+            "title": publication.title,
+            "authors": publication.authors,
+            "date_published": publication.date_published,
+            "url": publication.url,
+            "source_type": source_type,
+        }
+
+        # Add abstract if available
+        if publication.abstract:
+            metadata["abstract"] = publication.abstract
+
+        # Remove None values
+        return {k: v for k, v in metadata.items() if v is not None}
 
     def _convert_local_graph_to_json_dict(self, local_graph: LocalGraph) -> dict:
         """Convert LocalGraph back to JSON format compatible with PaperSchema."""
@@ -133,9 +173,11 @@ class MetadataFlow(Flow):
                 "intervention_maturity": node.intervention_maturity,
             }
 
-            # Add metadata if present
-            if node.metadata:
-                node_dict["source_metadata"] = node.metadata.to_dict()
+            # Add publication metadata if present
+            if node.publication:
+                node_dict["source_metadata"] = self._publication_to_source_metadata(
+                    node.publication
+                )
 
             nodes_data.append(node_dict)
 
@@ -156,8 +198,10 @@ class MetadataFlow(Flow):
                 "edge_confidence": edge.edge_confidence,
             }
 
-            if edge.metadata:
-                edge_dict["source_metadata"] = edge.metadata.to_dict()
+            if edge.publication:
+                edge_dict["source_metadata"] = self._publication_to_source_metadata(
+                    edge.publication
+                )
 
             chains_dict[chain_title]["edges"].append(edge_dict)
 
@@ -199,21 +243,21 @@ class MetadataFlow(Flow):
         source_identifier = self._determine_source_identifier(local_graph)
         logger.info(f"Using source identifier: {source_identifier}")
 
-        # Create metadata object
-        metadata = self._create_metadata_from_publication(source_identifier)
+        # Get publication object
+        publication = self._get_publication_from_identifier(source_identifier)
 
-        if metadata:
-            logger.info(f"Created metadata: {metadata}")
+        if publication:
+            logger.info(f"Found publication: {publication.title}")
 
-            # Add metadata to nodes
-            self._add_metadata_to_nodes(local_graph, metadata)
-            logger.info(f"Added metadata to {len(local_graph.nodes)} nodes")
+            # Add publication to nodes
+            self._add_publication_to_nodes(local_graph, publication)
+            logger.info(f"Added publication to {len(local_graph.nodes)} nodes")
 
-            # Add metadata to edges
-            self._add_metadata_to_edges(local_graph, metadata)
-            logger.info(f"Added metadata to {len(local_graph.edges)} edges")
+            # Add publication to edges
+            self._add_publication_to_edges(local_graph, publication)
+            logger.info(f"Added publication to {len(local_graph.edges)} edges")
         else:
-            logger.error(f"Failed to create metadata for source: {source_identifier}")
+            logger.error(f"Failed to get publication for source: {source_identifier}")
 
         logger.info("Metadata enrichment completed")
 

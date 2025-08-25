@@ -3,23 +3,23 @@ import numpy as np
 from pydantic import BaseModel, ConfigDict
 
 from ..local_graph_extraction.core import Node, Edge
-from .metadata import Metadata
+from ..data_interfaces.models import Publication
 
 
 class GraphNode(Node):
-    """Extended Node class with embedding and metadata support."""
+    """Extended Node class with embedding and publication metadata support."""
 
     embedding: Optional[np.ndarray] = None
-    metadata: Optional[Metadata] = None
+    publication: Optional[Publication] = None
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     def __init__(self, **data):
-        # Handle embedding and metadata separately to avoid pydantic validation issues
+        # Handle embedding and publication separately to avoid pydantic validation issues
         embedding = data.pop("embedding", None)
-        metadata = data.pop("metadata", None)
+        publication = data.pop("publication", None)
         super().__init__(**data)
         self.embedding = embedding
-        self.metadata = metadata
+        self.publication = publication
 
 
 class GraphEdge(Edge):
@@ -27,18 +27,18 @@ class GraphEdge(Edge):
 
     embedding: Optional[np.ndarray] = None
     concept_meta: Optional[str] = None  # Equivalent to title in LogicalChain
-    metadata: Optional[Metadata] = None
+    publication: Optional[Publication] = None
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     def __init__(self, **data):
-        # Handle embedding, concept_meta, and metadata separately to avoid pydantic validation issues
+        # Handle embedding, concept_meta, and publication separately to avoid pydantic validation issues
         embedding = data.pop("embedding", None)
         concept_meta = data.pop("concept_meta", None)
-        metadata = data.pop("metadata", None)
+        publication = data.pop("publication", None)
         super().__init__(**data)
         self.embedding = embedding
         self.concept_meta = concept_meta
-        self.metadata = metadata
+        self.publication = publication
 
 
 class LocalGraph(BaseModel):
