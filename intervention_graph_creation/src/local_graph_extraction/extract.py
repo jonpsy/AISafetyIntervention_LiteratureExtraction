@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 from openai import OpenAI
 from tqdm import tqdm
 
-from config import INPUT_DIR, OUTPUT_DIR
+from config import load_settings
 from intervention_graph_creation.src.prompt.final_primary_prompt import PROMPT_EXTRACT
 
 load_dotenv()
@@ -16,6 +16,7 @@ load_dotenv()
 MODEL = "gpt-5-2025-08-07"
 REASONING_EFFORT = "minimal"
 FENCE_RE = re.compile(r"```(?:json)?\s*(\{.*?\})\s*```", re.S | re.I)
+SETTINGS = load_settings()
 
 
 def safe_write(path: Path, content: str) -> None:
@@ -62,12 +63,13 @@ class Extractor:
         return response
 
     def process_dir(self, input_dir: Path, first_n: Optional[int] = None) -> None:
-        self.ensure_dir(OUTPUT_DIR)
+        output_dir = SETTINGS.paths.output_dir
+        self.ensure_dir(output_dir)
         pdf_paths = sorted(input_dir.absolute().glob("*.pdf"))
         if first_n:
             pdf_paths = pdf_paths[:first_n]
         for pdf_path in tqdm(pdf_paths):
-            out_dir = OUTPUT_DIR / pdf_path.stem
+            out_dir = output_dir / pdf_path.stem
             if out_dir.exists():
                 continue
             out_dir.mkdir(parents=True, exist_ok=True)
@@ -126,4 +128,4 @@ class Extractor:
 
 if __name__ == "__main__":
     extractor = Extractor()
-    extractor.process_dir(INPUT_DIR, 2)
+    extractor.process_dir(SETTINGS.paths.input_dir, 2)

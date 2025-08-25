@@ -4,19 +4,22 @@ from falkordb import FalkorDB
 from tqdm import tqdm
 from typing import List
 
-from config import FALKORDB_PORT, FALKORDB_HOST, OUTPUT_DIR, FALKORDB_GRAPH
+from config import load_settings
 from intervention_graph_creation.src.local_graph_extraction.core import Node, Edge, PaperSchema
 from intervention_graph_creation.src.local_graph_extraction.db.helpers import label_for, lit
 
 
+SETTINGS = load_settings()
+
+
 class AISafetyGraph:
     def __init__(self) -> None:
-        self.db = FalkorDB(host=FALKORDB_HOST, port=FALKORDB_PORT)
+        self.db = FalkorDB(host=SETTINGS.falkordb.host, port=SETTINGS.falkordb.port)
 
     # ---------- nodes ----------
 
     def upsert_node(self, node: Node, paper_id: str) -> None:
-        g = self.db.select_graph(FALKORDB_GRAPH)
+        g = self.db.select_graph(SETTINGS.falkordb.graph)
         label = label_for(node.type)
         # Uniqueness by (name, type) → prevents duplicates for same typed name
         g.query(
@@ -35,7 +38,7 @@ class AISafetyGraph:
     # but for the same etype we update the existing edge (MERGE by etype).
 
     def upsert_edge(self, edge: Edge, paper_id: str) -> None:
-        g = self.db.select_graph(FALKORDB_GRAPH)
+        g = self.db.select_graph(SETTINGS.falkordb.graph)
         s = lit(edge.source_node)
         t = lit(edge.target_node)
         etype = lit(edge.type)
@@ -85,7 +88,7 @@ class AISafetyGraph:
             for e in ch.edges:
                 self.upsert_edge(e, paper_id)
 
-    def ingest_dir(self, input_dir: str = OUTPUT_DIR) -> None:
+    def ingest_dir(self, input_dir: Path = SETTINGS.paths.output_dir) -> None:
         base = Path(input_dir)
         subdirs = [d for d in base.iterdir() if d.is_dir()]
         for d in tqdm(sorted(subdirs)):
@@ -98,7 +101,7 @@ class AISafetyGraph:
     # ---------- utils ----------
 
     def get_nodes(self) -> List[dict]:
-        g = self.db.select_graph(FALKORDB_GRAPH)
+        g = self.db.select_graph(SETTINGS.falkordb.graph)
         res = g.ro_query("MATCH (n) RETURN ID(n) AS id, labels(n) AS labels, n AS node")
         out = []
         for row in res.result_set:
@@ -128,7 +131,7 @@ class AISafetyGraph:
         Merge two nodes identified by name.
         Moves all relationships from remove_name -> keep_name, then deletes remove_name.
         """
-        graph = self.db.select_graph(FALKORDB_GRAPH)
+        graph = self.db.select_graph(SETTINGS.falkordb.graph)
 
         q = f"""
         MATCH (n {{name: {lit(remove_name)}}})
@@ -170,7 +173,7 @@ class AISafetyGraph:
 
 
 def main():
-    AISafetyGraph().ingest_dir(OUTPUT_DIR)
+    AISafetyGraph().ingest_dir(SETTINGS.paths.output_dir)
 
 
 if __name__ == "__main__":
