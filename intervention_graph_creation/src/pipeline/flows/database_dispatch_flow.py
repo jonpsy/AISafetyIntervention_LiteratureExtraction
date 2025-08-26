@@ -25,19 +25,29 @@ def lit(v):
     return "'" + str(v).replace("\\", "\\\\").replace("'", "\\'") + "'"
 
 
-def _execute_falkordb_query_subprocess(query: str, container_name: str = "falkordb-test") -> str:
+def _execute_falkordb_query_subprocess(
+    query: str, container_name: str = "falkordb-test"
+) -> str:
     """
     Execute a FalkorDB query using subprocess to avoid Mac-specific Redis client issues.
-    
+
     Args:
         query: The Cypher query to execute
         container_name: Name of the FalkorDB Docker container
-        
+
     Returns:
         The query result as a string
     """
     try:
-        cmd = ['docker', 'exec', container_name, 'redis-cli', 'GRAPH.QUERY', 'AISafetyIntervention', query]
+        cmd = [
+            "docker",
+            "exec",
+            container_name,
+            "redis-cli",
+            "GRAPH.QUERY",
+            "AISafetyIntervention",
+            query,
+        ]
         result = subprocess.run(cmd, capture_output=True, text=True, check=True)
         return result.stdout
     except subprocess.CalledProcessError as e:
@@ -49,11 +59,11 @@ def _execute_falkordb_query_subprocess(query: str, container_name: str = "falkor
 def _execute_falkordb_query_client(query: str, graph) -> str:
     """
     Execute a FalkorDB query using the original FalkorDB client.
-    
+
     Args:
         query: The Cypher query to execute
         graph: The FalkorDB graph instance
-        
+
     Returns:
         The query result as a string
     """
@@ -64,39 +74,46 @@ def _execute_falkordb_query_client(query: str, graph) -> str:
         raise Exception(f"FalkorDB client query failed: {e}")
 
 
-def execute_falkordb_query(query: str, graph=None, container_name: str = "falkordb-test") -> str:
+def execute_falkordb_query(
+    query: str, graph=None, container_name: str = "falkordb-test"
+) -> str:
     """
     Execute a FalkorDB query using the method specified by QUERY_EXECUTION_METHOD environment variable.
-    
+
     Args:
         query: The Cypher query to execute
         graph: The FalkorDB graph instance (required for client method)
         container_name: Name of the FalkorDB Docker container (required for subprocess method)
-        
+
     Returns:
         The query result as a string
     """
-    method = os.getenv('QUERY_EXECUTION_METHOD', 'client').lower()
-    
-    if method == 'subprocess':
+    method = os.getenv("QUERY_EXECUTION_METHOD", "client").lower()
+
+    if method == "subprocess":
         return _execute_falkordb_query_subprocess(query, container_name)
-    elif method == 'client':
+    elif method == "client":
         if graph is None:
             raise ValueError("Graph instance required for client method")
         return _execute_falkordb_query_client(query, graph)
     else:
-        raise ValueError(f"Unknown query execution method: {method}. Use 'client' or 'subprocess'")
+        raise ValueError(
+            f"Unknown query execution method: {method}. Use 'client' or 'subprocess'"
+        )
 
 
 class DatabaseDispatchFlow(Flow):
     """Flow that handles database operations and disk storage."""
-    
-    def __init__(self, next_flow: Optional[Flow] = None, 
-                 storage_dir: str = "pipeline_output",
-                 host: str = "localhost",
-                 port: int = 6379,
-                 container_name: str = "falkordb-test",
-                 graph_name: str = "AISafetyIntervention"):
+
+    def __init__(
+        self,
+        next_flow: Optional[Flow] = None,
+        storage_dir: str = "pipeline_output",
+        host: str = "localhost",
+        port: int = 6379,
+        container_name: str = "falkordb-test",
+        graph_name: str = "AISafetyIntervention",
+    ):
         super().__init__(next_flow)
         self.host = host
         self.port = port
@@ -104,37 +121,78 @@ class DatabaseDispatchFlow(Flow):
         self.graph_name = graph_name
         self.storage_dir = Path(storage_dir)
         self.storage_dir.mkdir(exist_ok=True)
-        
+
         # Initialize FalkorDB client for client method
         self.db = FalkorDB(host=host, port=port)
         self.graph = self.db.select_graph(graph_name)
-    
+
     def _save_to_disk(self, local_graph: LocalGraph, paper_id: str = None) -> str:
         """Save the LocalGraph to disk as JSON."""
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        paper_id = paper_id or f"paper_{timestamp}" # TODO: @jefedigital Once LocalGraph node is updated with metadata, we can use paper_id from the node
-        
+
+        # Extract paper_id from publication metadata if available
+        if not paper_id and local_graph.nodes and local_graph.nodes[0].publication:
+            pub = local_graph.nodes[0].publication
+            # Try to extract ArXiv ID from URL or use title as fallback
+            if pub.url and "arxiv.org" in pub.url:
+                from ...data_interfaces.utils import extract_arxiv_id_from_url
+
+                paper_id = extract_arxiv_id_from_url(pub.url) or f"paper_{timestamp}"
+            else:
+                # Use first few words of title as paper_id
+                paper_id = (
+                    "_".join(pub.title.split()[:3])
+                    .lower()
+                    .replace(",", "")
+                    .replace(".", "")
+                    or f"paper_{timestamp}"
+                )
+        else:
+            paper_id = paper_id or f"paper_{timestamp}"
+
         # Convert numpy arrays to lists for JSON serialization
         graph_data = local_graph.model_dump()
-        
-        # Ensure embeddings are serializable
+
+        # Ensure embeddings and publication data are serializable
         for node in graph_data["nodes"]:
-            if node.get("embedding") is not None and hasattr(node["embedding"], "tolist"):
+            if node.get("embedding") is not None and hasattr(
+                node["embedding"], "tolist"
+            ):
                 node["embedding"] = node["embedding"].tolist()
-        
+
+            # Handle publication metadata serialization
+            if node.get("publication") is not None:
+                pub = node["publication"]
+                if hasattr(pub, "model_dump"):
+                    node["publication"] = pub.model_dump()
+                elif hasattr(pub, "__dict__"):
+                    node["publication"] = pub.__dict__
+
         for edge in graph_data["edges"]:
-            if edge.get("embedding") is not None and hasattr(edge["embedding"], "tolist"):
+            if edge.get("embedding") is not None and hasattr(
+                edge["embedding"], "tolist"
+            ):
                 edge["embedding"] = edge["embedding"].tolist()
-        
+
+            # Handle publication metadata serialization
+            if edge.get("publication") is not None:
+                pub = edge["publication"]
+                if hasattr(pub, "model_dump"):
+                    edge["publication"] = pub.model_dump()
+                elif hasattr(pub, "__dict__"):
+                    edge["publication"] = pub.__dict__
+
         # Save to file
         output_file = self.storage_dir / f"{paper_id}_{timestamp}.json"
         with open(output_file, "w", encoding="utf-8") as f:
             json.dump(graph_data, f, indent=2, ensure_ascii=False)
-        
+
         print(f"Saved LocalGraph to disk: {output_file}")
         return str(output_file)
-    
-    def _unsafe_push_node_to_database(self, node_id: str, local_graph: LocalGraph, seen_nodes: set, method: str) -> int:
+
+    def _unsafe_push_node_to_database(
+        self, node_id: str, local_graph: LocalGraph, seen_nodes: set, method: str
+    ) -> int:
         """Pushes a node to the database and returns 1 if the node was created, 0 if it was already in the database."""
         if node_id in seen_nodes:
             return 0
@@ -142,6 +200,18 @@ class DatabaseDispatchFlow(Flow):
         node = local_graph.get_node_by_name(node_id)
         if node is None:
             raise ValueError(f"Node {node_id} not found in local graph")
+
+        # Build publication metadata fields for database
+        pub_fields = ""
+        if node.publication:
+            pub = node.publication
+            pub_fields = (
+                f"n.paper_title = {lit(pub.title or '')}, "
+                f"n.paper_authors = {lit(pub.authors or [])}, "
+                f"n.paper_date = {lit(pub.date_published or '')}, "
+                f"n.paper_url = {lit(pub.url or '')}, "
+                f"n.paper_abstract = {lit(pub.abstract or '')}, "
+            )
 
         node_query = (
             f"MERGE (n:NODE {{name: {lit(node.name)}}}) "
@@ -151,42 +221,63 @@ class DatabaseDispatchFlow(Flow):
             f"n.concept_category = {lit(node.concept_category or '')}, "
             f"n.intervention_lifecycle = {lit(node.intervention_lifecycle or 0)}, "
             f"n.intervention_maturity = {lit(node.intervention_maturity or 0)}, "
-            f"n.embedding = {lit(node.embedding.tolist() or [])}"
+            f"n.embedding = {lit(node.embedding.tolist() if node.embedding is not None else [])}, "
+            f"{pub_fields}"
+            f"n.updated_at = timestamp() "
             f"RETURN n"
         )
-        if method == 'subprocess':
+        if method == "subprocess":
             execute_falkordb_query(node_query, container_name=self.container_name)
         else:
-            execute_falkordb_query(node_query, graph=self.graph, container_name=self.container_name)
+            execute_falkordb_query(
+                node_query, graph=self.graph, container_name=self.container_name
+            )
         seen_nodes.add(node_id)
         return 1
 
-    def _unsafe_push_edge_to_database(self, edge: GraphEdge, local_graph: LocalGraph, method: str) -> int:
+    def _unsafe_push_edge_to_database(
+        self, edge: GraphEdge, local_graph: LocalGraph, method: str
+    ) -> int:
         """Pushes an edge to the database and returns 1 if the edge was created, 0 if it was already in the database."""
+        # Build publication metadata fields for edge
+        edge_pub_fields = ""
+        if edge.publication:
+            pub = edge.publication
+            edge_pub_fields = (
+                f"r.paper_title = {lit(pub.title or '')}, "
+                f"r.paper_authors = {lit(pub.authors or [])}, "
+                f"r.paper_date = {lit(pub.date_published or '')}, "
+                f"r.paper_url = {lit(pub.url or '')}, "
+            )
+
         edge_query = (
             f"MATCH (t:NODE {{name: {lit(edge.target_node)}}}), "
             f"(s:NODE {{name: {lit(edge.source_node)}}}) "
-            f"MERGE (s)-[r:{edge.description}]->(t) " #TODO: @jefedigital: I think description here should be fine?
+            f"MERGE (s)-[r:{edge.description}]->(t) "  # TODO: @jefedigital: I think description here should be fine?
             f"SET r.description = {lit(edge.description or '')}, "
             f"r.edge_confidence = {lit(edge.edge_confidence or 1)}, "
-            f"r.concept_meta = {lit(edge.concept_meta or '')} "
-            f"r.embedding = {lit(edge.embedding.tolist() or [])}"
+            f"r.concept_meta = {lit(edge.concept_meta or '')}, "
+            f"r.embedding = {lit(edge.embedding.tolist() if edge.embedding is not None else [])}, "
+            f"{edge_pub_fields}"
+            f"r.updated_at = timestamp() "
             f"RETURN r"
         )
-        if method == 'subprocess':
+        if method == "subprocess":
             execute_falkordb_query(edge_query, container_name=self.container_name)
         else:
-            execute_falkordb_query(edge_query, graph=self.graph, container_name=self.container_name)
+            execute_falkordb_query(
+                edge_query, graph=self.graph, container_name=self.container_name
+            )
         return 1
 
     def _push_to_database(self, local_graph: LocalGraph, paper_id: str = None) -> None:
         """Push the LocalGraph data to the database using configurable execution method."""
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         paper_id = paper_id or f"paper_{timestamp}"
-        
-        method = os.getenv('QUERY_EXECUTION_METHOD', 'client').lower()
+
+        method = os.getenv("QUERY_EXECUTION_METHOD", "client").lower()
         print(f"🔧 Using query execution method: {method}")
-        
+
         try:
             # Upsert nodes and edges
             nodes_created = 0
@@ -194,37 +285,45 @@ class DatabaseDispatchFlow(Flow):
             seen_nodes = set()
             for edge in local_graph.edges:
                 nodes_created += self._unsafe_push_node_to_database(
-                    edge.target_node, local_graph, seen_nodes, method) #TODO: @jefedigital: Name is being used a proxy for id.
+                    edge.target_node, local_graph, seen_nodes, method
+                )  # TODO: @jefedigital: Name is being used a proxy for id.
                 nodes_created += self._unsafe_push_node_to_database(
-                    edge.source_node, local_graph, seen_nodes, method) #TODO: @jefedigital: Name is being used a proxy for id
+                    edge.source_node, local_graph, seen_nodes, method
+                )  # TODO: @jefedigital: Name is being used a proxy for id
 
-                edges_created += self._unsafe_push_edge_to_database(edge, local_graph, method) #TODO: @jefedigital: Edge description is being used a proxy for id.
-            print(f"✓ Successfully pushed to database: {nodes_created} nodes, {edges_created} edges")
+                edges_created += self._unsafe_push_edge_to_database(
+                    edge, local_graph, method
+                )  # TODO: @jefedigital: Edge description is being used a proxy for id.
+            print(
+                f"✓ Successfully pushed to database: {nodes_created} nodes, {edges_created} edges"
+            )
         except Exception as e:
             print(f"⚠️  Database push failed: {e}")
             print(f"   Data has been saved to disk successfully at: {self.storage_dir}")
-            if method == 'client':
-                print(f"   Try setting QUERY_EXECUTION_METHOD=subprocess for Mac compatibility")
-    
+            if method == "client":
+                print(
+                    "   Try setting QUERY_EXECUTION_METHOD=subprocess for Mac compatibility"
+                )
+
     def process(self, local_graph: LocalGraph) -> LocalGraph:
         """
         Process the LocalGraph by pushing to database and saving to disk.
-        
+
         Args:
             local_graph: The LocalGraph instance to process
-            
+
         Returns:
             The LocalGraph (passed through)
         """
         print("Starting database dispatch...")
-        
+
         # Save to disk
-        disk_path = self._save_to_disk(local_graph)
-        
+        self._save_to_disk(local_graph)
+
         # Push to database
         self._push_to_database(local_graph)
-        
+
         print("Database dispatch completed successfully")
-        
+
         # Pass to next flow in chain
         return self._call_next(local_graph)
