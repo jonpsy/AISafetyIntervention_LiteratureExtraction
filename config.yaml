@@ -1,0 +1,8 @@
+paths:
+  input_dir: "./intervention_graph_creation/data/raw/pdfs_local"
+  output_dir: "./intervention_graph_creation/data/processed"
+
+falkordb:
+  host: "localhost"
+  port: 6379
+  graph: "AISafetyIntervention"
