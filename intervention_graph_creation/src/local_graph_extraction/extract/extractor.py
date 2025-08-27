@@ -24,7 +24,7 @@ from intervention_graph_creation.src.local_graph_extraction.extract.utilities im
 MODEL = "o3"
 REASONING_EFFORT = "medium"
 SETTINGS = load_settings()
-META_KEYS = {'authors', 'date_published', 'filename', 'source', 'source_filetype', 'title', 'url'}
+META_KEYS = frozenset(['authors', 'date_published', 'filename', 'source', 'source_filetype', 'title', 'url'])
 
 
 class Extractor:
