@@ -11,5 +11,5 @@ INPUT_PDF_DIR = Path('intervention_graph_creation/data/raw/pdfs_local')
 extractor = Extractor()
 
 # extractor.process_jsonl(INPUT_JSON_FILE)
-extractor.process_dir(INPUT_JSON_DIR, 2)
+extractor.process_dir(INPUT_JSON_DIR)
 # extractor.process_dir(INPUT_PDF_DIR, 2)
