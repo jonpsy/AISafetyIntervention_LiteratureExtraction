@@ -5,7 +5,8 @@ from tqdm import tqdm
 from typing import List
 
 from config import load_settings
-from intervention_graph_creation.src.local_graph_extraction.core import Node, Edge, PaperSchema
+from intervention_graph_creation.src.local_graph_extraction.core import PaperSchema
+from intervention_graph_creation.src.pipeline.local_graph import GraphNode, GraphEdge, LocalGraph
 from intervention_graph_creation.src.local_graph_extraction.db.helpers import label_for, lit
 
 
@@ -18,7 +19,7 @@ class AISafetyGraph:
 
     # ---------- nodes ----------
 
-    def upsert_node(self, node: Node, paper_id: str) -> None:
+    def upsert_node(self, node: GraphNode, paper_id: str) -> None:
         g = self.db.select_graph(SETTINGS.falkordb.graph)
         label = label_for(node.type)
         # Uniqueness by (name, type) → prevents duplicates for same typed name
@@ -29,7 +30,8 @@ class AISafetyGraph:
             f"n.concept_category = {lit(node.concept_category)}, "
             f"n.intervention_lifecycle = {lit(node.intervention_lifecycle)}, "
             f"n.intervention_maturity = {lit(node.intervention_maturity)}, "
-            f"n.paper_id = {lit(paper_id)} "
+            f"n.paper_id = {lit(paper_id)}, "
+            f"n.embedding = {lit(node.embedding)}"
             f"RETURN n"
         )
 
@@ -37,7 +39,7 @@ class AISafetyGraph:
     # Multiple edges between same nodes are allowed,
     # but for the same etype we update the existing edge (MERGE by etype).
 
-    def upsert_edge(self, edge: Edge, paper_id: str) -> None:
+    def upsert_edge(self, edge: GraphEdge, paper_id: str) -> None:
         g = self.db.select_graph(SETTINGS.falkordb.graph)
         s = lit(edge.source_node)
         t = lit(edge.target_node)
@@ -53,7 +55,8 @@ class AISafetyGraph:
             "MERGE (a)-[r:EDGE {etype: " + etype + "}]->(b) "
             "SET r.description = " + lit(edge.description) + ", "
             "    r.edge_confidence = " + lit(edge.edge_confidence) + ", "
-            "    r.paper_id = " + lit(paper_id) + " "
+            "    r.paper_id = " + lit(paper_id) + ", "
+            "    r.embedding = " + lit(edge.embedding) + " "
             "RETURN r"
         )
 
@@ -97,6 +100,12 @@ class AISafetyGraph:
                 print(f"⚠️ Skipping {d.name}: {json_path} not found")
                 continue
             self.ingest_file(json_path)
+
+    def ingest_local_graph(self, local_graph: LocalGraph) -> None:
+        for node in local_graph.nodes:
+            self.upsert_node(node, local_graph.paper_id)
+        for edge in local_graph.edges:
+            self.upsert_edge(edge, local_graph.paper_id)
 
     # ---------- utils ----------
 

@@ -66,7 +66,7 @@ def run_pipeline_test():
             print("Skipping database operations due to connection failure")
             db_flow = None
         else:
-            db_flow = DatabaseDispatchFlow(host="localhost", port=6379, graph_name="AISafetyIntervention")
+            db_flow = DatabaseDispatchFlow()
         
         # Create pipeline
         pipeline = Pipeline()

@@ -36,7 +36,7 @@ class LocalGraph(BaseModel):
     """Container for graph data with nodes and edges that have embeddings."""
     nodes: List[GraphNode]
     edges: List[GraphEdge]
-    
+    paper_id: str
     model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True)
     
     def __len__(self) -> int:

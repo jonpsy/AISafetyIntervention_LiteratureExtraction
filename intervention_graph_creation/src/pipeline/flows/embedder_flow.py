@@ -8,19 +8,8 @@ from sentence_transformers import SentenceTransformer
 from .base import Flow
 from ..local_graph import LocalGraph, GraphNode, GraphEdge
 from ...local_graph_extraction.core import PaperSchema, Node, Edge
+from ...local_graph_extraction.db.helpers import iter_jsonl
 
-
-def iter_jsonl(path: str | Path) -> Iterator[dict]:
-    """Iterate over JSONL file, handling both regular and gzipped files."""
-    path = Path(path)
-    opener = gzip.open if path.suffix == ".gz" else open
-    mode = "rt" if path.suffix == ".gz" else "r"
-    with opener(path, mode, encoding="utf-8") as f:
-        for i, line in enumerate(f, 1):
-            line = line.strip()
-            if not line:
-                continue
-            yield json.loads(line)
 
 
 class EmbedderFlow(Flow):
@@ -138,7 +127,7 @@ class EmbedderFlow(Flow):
                     graph_edge = self._convert_edge_to_graph_edge(edge, logical_chain.title)
                     graph_edges.append(graph_edge)
             
-            local_graph = LocalGraph(nodes=graph_nodes, edges=graph_edges)
+            local_graph = LocalGraph(nodes=graph_nodes, edges=graph_edges, paper_id=Path(local_graph_or_path).stem)
         else:
             # Assume it's already a LocalGraph
             local_graph = local_graph_or_path
