@@ -76,10 +76,6 @@ class LocalGraph(BaseModel):
                 graph_edge = GraphEdge(**edge.model_dump(), logical_chain_title=logical_chain.title)
                 graph_edges.append(graph_edge)
         local_graph = LocalGraph(nodes=graph_nodes, edges=graph_edges, paper_id=json_path.stem)
-        for node in local_graph.nodes:
-            self._add_embeddings_to_nodes(node)
-        for edge in local_graph.edges:
-            self._add_embeddings_to_edges(edge)
         return local_graph
 
 

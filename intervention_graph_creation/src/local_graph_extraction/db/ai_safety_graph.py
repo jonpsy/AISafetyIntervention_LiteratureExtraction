@@ -66,6 +66,10 @@ class AISafetyGraph:
         data = json.loads(Path(json_path).read_text(encoding="utf-8"))
         doc = PaperSchema(**data)
         local_graph = LocalGraph.from_paper_schema(doc, json_path)
+        for node in local_graph.nodes:
+            local_graph._add_embeddings_to_nodes(node)
+        for edge in local_graph.edges:
+            local_graph._add_embeddings_to_edges(edge)
         self.ingest_local_graph(local_graph)
 
     def ingest_dir(self, input_dir: Path = SETTINGS.paths.output_dir) -> None:
