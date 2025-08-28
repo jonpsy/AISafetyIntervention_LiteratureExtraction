@@ -1,6 +1,7 @@
 from typing import Optional
 
 from .base import Flow
+from intervention_graph_creation.src.local_graph_extraction.db.ai_safety_graph import AISafetyGraph
 from intervention_graph_creation.src.pipeline.local_graph import LocalGraph
 
 class DatabaseDispatchFlow(Flow):
@@ -8,15 +9,11 @@ class DatabaseDispatchFlow(Flow):
     
     def __init__(self, next_flow: Optional[Flow] = None):
         super().__init__(next_flow)
-        self.graph = None  # Lazy initialization to avoid circular imports
+        self.graph = AISafetyGraph()
 
     def _push_to_database(self, local_graph: LocalGraph) -> None:
         """Push the LocalGraph data to the database."""
         try:
-            # Lazy import to avoid circular imports
-            if self.graph is None:
-                from intervention_graph_creation.src.local_graph_extraction.db.ai_safety_graph import AISafetyGraph
-                self.graph = AISafetyGraph()
             self.graph.ingest_local_graph(local_graph)
         except Exception as e:
             print(f"⚠️  Database push failed: {e}")
