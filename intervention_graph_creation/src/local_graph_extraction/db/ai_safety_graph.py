@@ -55,7 +55,7 @@ class AISafetyGraph:
         g.query(f"MERGE (b {{name: {t}}}) RETURN b")
 
         # One :EDGE per (a,b,etype). If exists → update props; else → create.
-        query = (
+        g.query(
             f"MATCH (a {{name: {s}}}), (b {{name: {t}}}) "
             f"MERGE (a)-[r:EDGE {{etype: {etype}}}]->(b) "
             f"SET r.description = {lit(edge.description)}, "
