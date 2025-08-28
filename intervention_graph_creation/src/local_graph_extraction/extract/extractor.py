@@ -15,7 +15,8 @@ from intervention_graph_creation.src.local_graph_extraction.extract.utilities im
                                                                                       stringify_response,
                                                                                       extract_output_text,
                                                                                       write_failure,
-                                                                                      url_to_id)
+                                                                                      url_to_id,
+                                                                                      filter_dict)
 
 # ---------------- Basic config ----------------
 
@@ -23,6 +24,7 @@ from intervention_graph_creation.src.local_graph_extraction.extract.utilities im
 MODEL = "o3"
 REASONING_EFFORT = "medium"
 SETTINGS = load_settings()
+META_KEYS = frozenset(['authors', 'date_published', 'filename', 'source', 'source_filetype', 'title', 'url'])
 
 
 class Extractor:
@@ -119,7 +121,7 @@ class Extractor:
 
         file_id = self.upload_pdf_get_id(path)
         resp = self.call_openai_file(file_id)
-        meta = {"filename": path.name} # other meta?
+        meta = [{"key": "filename", "value": path.name}] # other meta?
 
         self.write_outputs(out_dir, path.stem, resp, meta)
 
@@ -139,7 +141,7 @@ class Extractor:
                     out_dir.mkdir(parents=True, exist_ok=True)
 
                     resp = self.call_openai_text(paper_json['text'])
-                    meta = {k: paper_json[k] for k in paper_json if k != 'text'}
+                    meta = filter_dict(paper_json, META_KEYS)
 
                     self.write_outputs(out_dir, paper_id, resp, meta)
 

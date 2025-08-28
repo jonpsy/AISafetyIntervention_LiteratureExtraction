@@ -15,6 +15,14 @@ def extract_output_text(resp: Any) -> str:
     return value if isinstance(value, str) else str(value or "")
 
 
+def filter_dict(d: dict, keys: set) -> list[dict]:
+    """
+    Return a flat list of {"key": key, "value": value}
+    for the specified keys that exist in the original dict.
+    """
+    return [{"key": k, "value": d[k]} for k in keys if k in d]
+
+
 def safe_write(path: Path, content: str) -> None:
     """Create parents (if needed) and write UTF-8 text."""
     path.parent.mkdir(parents=True, exist_ok=True)
