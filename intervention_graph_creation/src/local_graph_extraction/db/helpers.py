@@ -13,8 +13,6 @@ def lit(v):
         return "'" + v.replace("\\", "\\\\").replace("'", "\\'") + "'"
     if isinstance(v, (list, tuple)):
         return "[" + ", ".join(lit(x) for x in v) + "]"
-    if isinstance(v, np.ndarray):
-        return "[" + ", ".join(lit(x) for x in v.tolist()) + "]"
     return "'" + str(v).replace("\\", "\\\\").replace("'", "\\'") + "'"
 
 
@@ -32,3 +30,14 @@ def iter_jsonl(path: str | Path) -> Iterator[dict]:
             if not line:
                 continue
             yield json.loads(line)
+
+
+def vector_to_string(v):
+    """Convert numpy array to FalkorDB vector string format."""
+    if v is None:
+        return "[]"
+    if isinstance(v, np.ndarray):
+        return "[" + ", ".join(str(float(x)) for x in v.flatten()) + "]"
+    if isinstance(v, (list, tuple)):
+        return "[" + ", ".join(str(float(x)) for x in v) + "]"
+    return "[]"

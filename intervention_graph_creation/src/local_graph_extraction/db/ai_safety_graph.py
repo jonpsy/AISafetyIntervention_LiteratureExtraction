@@ -6,8 +6,8 @@ from typing import List
 
 from config import load_settings
 from intervention_graph_creation.src.local_graph_extraction.core import PaperSchema
-from intervention_graph_creation.src.pipeline.local_graph import GraphNode, GraphEdge, LocalGraph
-from intervention_graph_creation.src.local_graph_extraction.db.helpers import label_for, lit
+from intervention_graph_creation.src.local_graph_extraction.local_graph import GraphNode, GraphEdge, LocalGraph
+from intervention_graph_creation.src.local_graph_extraction.db.helpers import label_for, lit, vector_to_string
 
 
 SETTINGS = load_settings()
@@ -31,7 +31,7 @@ class AISafetyGraph:
             f"n.intervention_lifecycle = {lit(node.intervention_lifecycle)}, "
             f"n.intervention_maturity = {lit(node.intervention_maturity)}, "
             f"n.paper_id = {lit(paper_id)}, "
-            f"n.embedding = {lit(node.embedding)}"
+            f"n.embedding = VECTOR({vector_to_string(node.embedding)})"
             f"RETURN n"
         )
 
@@ -56,7 +56,7 @@ class AISafetyGraph:
             "SET r.description = " + lit(edge.description) + ", "
             "    r.edge_confidence = " + lit(edge.edge_confidence) + ", "
             "    r.paper_id = " + lit(paper_id) + ", "
-            "    r.embedding = " + lit(edge.embedding) + " "
+            "    r.embedding = VECTOR(" + vector_to_string(edge.embedding) + ") "
             "RETURN r"
         )
 
@@ -65,31 +65,8 @@ class AISafetyGraph:
     def ingest_file(self, json_path: Path) -> None:
         data = json.loads(Path(json_path).read_text(encoding="utf-8"))
         doc = PaperSchema(**data)
-
-        # Basic file-level checks
-        names = [n.name for n in doc.nodes]
-        if len(names) != len(set(names)):
-            dupes = sorted({x for x in names if names.count(x) > 1})
-            raise ValueError(f"Duplicate node names in {json_path.name}: {dupes}")
-
-        known = set(names)
-        missing = [
-            (e.source_node, e.target_node)
-            for ch in doc.logical_chains
-            for e in ch.edges
-            if e.source_node not in known or e.target_node not in known
-        ]
-        if missing:
-            raise ValueError(f"Edges reference unknown nodes in {json_path.name}: {missing[:5]}...")
-
-        paper_id = json_path.stem
-
-        for n in doc.nodes:
-            self.upsert_node(n, paper_id)
-
-        for ch in doc.logical_chains:
-            for e in ch.edges:
-                self.upsert_edge(e, paper_id)
+        local_graph = LocalGraph.from_paper_schema(doc, json_path)
+        self.ingest_local_graph(local_graph)
 
     def ingest_dir(self, input_dir: Path = SETTINGS.paths.output_dir) -> None:
         base = Path(input_dir)
