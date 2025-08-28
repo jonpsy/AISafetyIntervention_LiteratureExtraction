@@ -22,6 +22,9 @@ class AISafetyGraph:
     def upsert_node(self, node: GraphNode, paper_id: str) -> None:
         g = self.db.select_graph(SETTINGS.falkordb.graph)
         label = label_for(node.type)
+
+        embedding_str = node.embedding.tolist() if node.embedding is not None else None
+
         # Uniqueness by (name, type) → prevents duplicates for same typed name
         g.query(
             f"MERGE (n:{label} {{name: {lit(node.name)}, type: {lit(node.type)}}}) "
@@ -31,7 +34,7 @@ class AISafetyGraph:
             f"n.intervention_lifecycle = {lit(node.intervention_lifecycle)}, "
             f"n.intervention_maturity = {lit(node.intervention_maturity)}, "
             f"n.paper_id = {lit(paper_id)}, "
-            f"n.embedding = VECTOR({vector_to_string(node.embedding)})"
+            f"n.embedding = vecf32({embedding_str})"
             f"RETURN n"
         )
 
@@ -45,19 +48,21 @@ class AISafetyGraph:
         t = lit(edge.target_node)
         etype = lit(edge.type)
 
+        embedding_str = edge.embedding.tolist() if edge.embedding is not None else None
+
         # Ensure endpoints exist (by name only; labels may be added elsewhere)
         g.query(f"MERGE (a {{name: {s}}}) RETURN a")
         g.query(f"MERGE (b {{name: {t}}}) RETURN b")
 
         # One :EDGE per (a,b,etype). If exists → update props; else → create.
-        g.query(
-            "MATCH (a {name: " + s + "}), (b {name: " + t + "}) "
-            "MERGE (a)-[r:EDGE {etype: " + etype + "}]->(b) "
-            "SET r.description = " + lit(edge.description) + ", "
-            "    r.edge_confidence = " + lit(edge.edge_confidence) + ", "
-            "    r.paper_id = " + lit(paper_id) + ", "
-            "    r.embedding = VECTOR(" + vector_to_string(edge.embedding) + ") "
-            "RETURN r"
+        query = (
+            f"MATCH (a {{name: {s}}}), (b {{name: {t}}}) "
+            f"MERGE (a)-[r:EDGE {{etype: {etype}}}]->(b) "
+            f"SET r.description = {lit(edge.description)}, "
+            f"r.edge_confidence = {lit(edge.edge_confidence)}, "
+            f"r.paper_id = {lit(paper_id)}, "
+            f"r.embedding = vecf32({embedding_str}) "
+            f"RETURN r"
         )
 
     # ---------- ingest ----------
